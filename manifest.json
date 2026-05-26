@@ -1,0 +1,26 @@
+{
+  "name": "ThaiChat Translator",
+  "short_name": "ThaiChat",
+  "description": "Traductor personal Español/Inglés ↔ Tailandés",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#e85d75",
+  "orientation": "portrait",
+  "lang": "es",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
