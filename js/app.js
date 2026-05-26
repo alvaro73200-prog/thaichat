@@ -53,14 +53,19 @@ class ThaiChatApp {
 
   // ────────── EVENT LISTENERS ──────────
   setupEventListeners() {
-    const $ = (sel) => document.querySelector(sel);
+    // Helper seguro: si el elemento no existe, no crashea
+    const $ = (sel) => {
+      const el = document.querySelector(sel);
+      if (!el) console.warn(`[ThaiChat] Elemento no encontrado: ${sel}`);
+      return el;
+    };
     const $$ = (sel) => document.querySelectorAll(sel);
 
     // Chat: botón enviar
-    $('#chat-send-btn').addEventListener('click', () => this.handleSend());
+    $('#chat-send-btn')?.addEventListener('click', () => this.handleSend());
 
     // Chat: Enter = enviar, Shift+Enter = nueva línea
-    $('#chat-input').addEventListener('keydown', (e) => {
+    $('#chat-input')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this.handleSend();
@@ -68,8 +73,9 @@ class ThaiChatApp {
     });
 
     // Chat: auto-resize del textarea
-    $('#chat-input').addEventListener('input', () => {
+    $('#chat-input')?.addEventListener('input', () => {
       const el = $('#chat-input');
+      if (!el) return;
       el.style.height = 'auto';
       el.style.height = Math.min(el.scrollHeight, 120) + 'px';
     });
@@ -80,15 +86,15 @@ class ThaiChatApp {
     });
 
     // Ajustes
-    $('#settings-btn').addEventListener('click', () => this.showSettings());
-    $('#close-settings').addEventListener('click', () => this.hideSettings());
-    $('#save-settings').addEventListener('click', () => this.saveSettings());
-    $('#settings-overlay').addEventListener('click', (e) => {
+    $('#settings-btn')?.addEventListener('click', () => this.showSettings());
+    $('#close-settings')?.addEventListener('click', () => this.hideSettings());
+    $('#save-settings')?.addEventListener('click', () => this.saveSettings());
+    $('#settings-overlay')?.addEventListener('click', (e) => {
       if (e.target === e.currentTarget) this.hideSettings();
     });
 
     // Borrar historial
-    $('#clear-history').addEventListener('click', () => {
+    $('#clear-history')?.addEventListener('click', () => {
       if (Storage.getHistory().length === 0) return;
       Storage.clearHistory();
       this.renderHistory();
@@ -97,7 +103,7 @@ class ThaiChatApp {
     });
 
     // Borrar favoritos
-    $('#clear-favorites').addEventListener('click', () => {
+    $('#clear-favorites')?.addEventListener('click', () => {
       if (Storage.getFavorites().length === 0) return;
       Storage.clearFavorites();
       this.renderFavorites();
@@ -109,6 +115,7 @@ class ThaiChatApp {
       item.addEventListener('click', () => {
         const text = item.dataset.phrase;
         const input = $('#chat-input');
+        if (!input) return;
         input.value = text;
         input.style.height = 'auto';
         input.style.height = Math.min(input.scrollHeight, 120) + 'px';

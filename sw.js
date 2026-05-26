@@ -1,16 +1,16 @@
-const CACHE_NAME = 'thaichat-v3';
+const CACHE_NAME = 'thaichat-v4';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/css/styles.css',
-  '/js/app.js',
-  '/js/api.js',
-  '/js/prompts.js',
-  '/js/storage.js',
-  '/js/pwa.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
+  './',
+  './index.html',
+  './css/styles.css',
+  './js/app.js',
+  './js/api.js',
+  './js/prompts.js',
+  './js/storage.js',
+  './js/pwa.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap'
 ];
 
