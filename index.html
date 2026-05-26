@@ -24,6 +24,60 @@
 
   <div class="app">
 
+    <!-- ===== ONBOARDING (solo si no hay API key) ===== -->
+    <div class="onboarding-screen" id="onboarding-screen">
+      <div class="onboarding-content">
+
+        <div class="onboarding-hero">
+          <div class="onboarding-icon">🇹🇭</div>
+          <h1 class="onboarding-title">ThaiChat</h1>
+          <p class="onboarding-sub">Tu traductor personal de tailandés</p>
+        </div>
+
+        <div class="onboarding-card">
+          <p class="onboarding-step">Para empezar necesitas una <strong>API Key de Gemini</strong> (es gratis)</p>
+
+          <div class="onboarding-input-group">
+            <input
+              type="text"
+              id="onboarding-key-input"
+              class="onboarding-input"
+              placeholder="AIzaSy..."
+              autocomplete="off"
+              spellcheck="false"
+            >
+            <button class="onboarding-paste-btn" id="onboarding-paste-btn">
+              📋 Pegar
+            </button>
+          </div>
+
+          <div class="onboarding-model-group">
+            <label class="onboarding-model-label" for="onboarding-model-select">Modelo</label>
+            <select class="onboarding-model-select" id="onboarding-model-select">
+              <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash Lite (recomendado)</option>
+              <option value="gemini-2.5-flash">🚀 Gemini 2.5 Flash</option>
+              <option value="gemini-2.0-flash">💎 Gemini 2.0 Flash</option>
+              <option value="gemini-2.0-flash-lite">⚡ Gemini 2.0 Flash Lite</option>
+            </select>
+          </div>
+
+          <button class="onboarding-start-btn" id="onboarding-start-btn">
+            🚀 Empezar a traducir
+          </button>
+
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener"
+            class="onboarding-link"
+          >
+            ¿No tienes una? Créala gratis aquí →
+          </a>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ===== HEADER ===== -->
     <header class="header">
       <div class="header__brand">
@@ -38,47 +92,38 @@
     <!-- ===== MAIN CONTENT ===== -->
     <main class="main">
 
-      <!-- ─── TAB: TRADUCIR ─── -->
+      <!-- ─── TAB: CHAT (TRADUCIR) ─── -->
       <div class="tab-pane active" id="tab-translate">
+        <div class="chat-container">
 
-        <!-- Direction Indicator -->
-        <div class="direction-indicator" id="direction-indicator">
-          <span class="flag">🇪🇸</span>
-          <span class="lang">Español</span>
-          <span class="arrow">→</span>
-          <span class="flag">🇹🇭</span>
-          <span class="lang">Tailandés</span>
-        </div>
-
-        <!-- Input Card -->
-        <div class="input-card glass-card">
-          <textarea
-            id="input-text"
-            placeholder="Escribe tu mensaje aquí..."
-            rows="4"
-            maxlength="2000"
-            autocomplete="off"
-            spellcheck="true"
-          ></textarea>
-          <div class="input-footer">
-            <span class="char-count" id="char-count">0 / 2000</span>
-            <button class="btn-clear-input" id="btn-clear-input">Borrar</button>
+          <!-- Zona de burbujas -->
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-welcome" id="chat-welcome">
+              <div class="chat-welcome__icon">🇹🇭</div>
+              <div class="chat-welcome__title">ThaiChat</div>
+              <div class="chat-welcome__sub">Escribe algo para traducir</div>
+            </div>
           </div>
-        </div>
 
-        <!-- Translate Button -->
-        <button class="btn-translate" id="translate-btn">
-          <span class="btn-text">🔄 Traducir</span>
-        </button>
+          <!-- Barra de input fija abajo -->
+          <div class="chat-input-bar" id="chat-input-bar">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              placeholder="Escribe tu mensaje..."
+              rows="1"
+              maxlength="2000"
+              autocomplete="off"
+              spellcheck="true"
+            ></textarea>
+            <button class="chat-send-btn" id="chat-send-btn" aria-label="Enviar">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
 
-        <!-- Result Area -->
-        <div class="result-card glass-card hidden" id="result-area">
-          <!-- Se llena dinámicamente por app.js -->
-        </div>
-
-        <!-- Error Area -->
-        <div class="error-card hidden" id="error-area">
-          <!-- Se llena dinámicamente por app.js -->
         </div>
       </div>
 
@@ -254,6 +299,19 @@
 
   <!-- Scripts (ES Modules) -->
   <script type="module" src="js/app.js"></script>
+
+  <!-- Fallback: detectar si los módulos no cargaron (e.g. file://) -->
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        // Si después de 2s el onboarding no tiene event listeners funcionales,
+        // probablemente los módulos no cargaron
+        if (!window.__thaichat_loaded) {
+          console.warn('[ThaiChat] Los módulos ES no se cargaron. ¿Estás abriendo el archivo directamente?');
+        }
+      }, 2000);
+    });
+  </script>
 
 </body>
 </html>

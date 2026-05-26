@@ -1092,3 +1092,608 @@ button:focus:not(:focus-visible) {
     background: var(--text-muted);
   }
 }
+
+/* ==================== CHAT INTERFACE ==================== */
+
+/* Tab pane override for chat (no padding — el chat ocupa todo) */
+#tab-translate {
+  padding: 0;
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+
+#tab-translate.active {
+  display: flex;
+}
+
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+}
+
+/* ── Zona de mensajes ── */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.chat-messages::-webkit-scrollbar {
+  width: 3px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: var(--r-full);
+}
+
+/* ── Welcome screen ── */
+.chat-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 40px 20px;
+  text-align: center;
+  animation: fadeSlideUp 0.5s var(--ease-out);
+}
+
+.chat-welcome__icon {
+  font-size: 56px;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 4px 20px rgba(232,93,117,0.3));
+}
+
+.chat-welcome__title {
+  font-size: 22px;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+
+.chat-welcome__sub {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ── Separador de fecha ── */
+.chat-date-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.chat-date-divider::before,
+.chat-date-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* ── Grupo de burbujas (agrupadas por dirección) ── */
+.bubble-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bubble-group--user {
+  align-items: flex-end;
+}
+
+.bubble-group--bot {
+  align-items: flex-start;
+}
+
+/* ── Burbuja base ── */
+.chat-bubble {
+  max-width: 78%;
+  min-width: 60px;
+  border-radius: 18px;
+  padding: 10px 14px;
+  position: relative;
+  cursor: pointer;
+  animation: bubbleIn 0.3s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.chat-bubble:active {
+  transform: scale(0.97);
+}
+
+@keyframes bubbleIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Burbuja del USUARIO (derecha, coral) ── */
+.chat-bubble--user {
+  background: var(--gradient-primary);
+  color: white;
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 2px 12px rgba(232, 93, 117, 0.25);
+}
+
+/* ── Burbuja de TRADUCCIÓN (izquierda, gris) ── */
+.chat-bubble--bot {
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-bottom-left-radius: 5px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Texto principal de la burbuja ── */
+.chat-bubble__text {
+  font-size: 15px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.chat-bubble__text.thai-text {
+  font-family: var(--font-thai);
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+/* ── Hora ── */
+.chat-bubble__time {
+  font-size: 10px;
+  opacity: 0.65;
+  margin-top: 4px;
+  text-align: right;
+  line-height: 1;
+}
+
+.chat-bubble--bot .chat-bubble__time {
+  text-align: left;
+  color: var(--text-muted);
+}
+
+/* ── Bandera de idioma (en burbuja bot) ── */
+.chat-bubble__lang {
+  font-size: 11px;
+  margin-bottom: 6px;
+  opacity: 0.7;
+}
+
+/* ── Detalles expandibles ── */
+.chat-bubble__details {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s var(--ease-out), opacity 0.25s;
+  opacity: 0;
+}
+
+.chat-bubble.expanded .chat-bubble__details {
+  max-height: 400px;
+  opacity: 1;
+}
+
+.chat-bubble__divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 8px 0;
+}
+
+.chat-bubble--bot .chat-bubble__divider {
+  background: var(--border-subtle);
+}
+
+.chat-detail-row {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.chat-detail-row strong {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: block;
+  margin-bottom: 2px;
+  opacity: 0.7;
+}
+
+.chat-detail-row.roman {
+  color: var(--accent-gold-light);
+  font-style: italic;
+}
+
+.chat-bubble--bot .chat-detail-row {
+  color: var(--text-secondary);
+}
+
+.chat-bubble__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.chat-action-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.chat-action-btn:hover,
+.chat-action-btn:active {
+  background: rgba(255,255,255,0.14);
+  color: var(--text-primary);
+}
+
+.chat-action-btn.fav-active {
+  background: rgba(245,158,11,0.15);
+  border-color: rgba(245,158,11,0.3);
+  color: var(--accent-gold);
+}
+
+/* ── Indicador "traduciendo..." ── */
+.chat-typing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 16px;
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  border-bottom-left-radius: 5px;
+  max-width: 70px;
+  animation: bubbleIn 0.3s var(--ease-spring);
+}
+
+.chat-typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+  animation: typingDot 1.2s infinite;
+}
+
+.chat-typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.chat-typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* ── Barra de input ── */
+.chat-input-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 10px 14px calc(10px + var(--safe-bottom));
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: 22px;
+  padding: 11px 16px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: var(--font-ui);
+  outline: none;
+  resize: none;
+  max-height: 120px;
+  overflow-y: auto;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-input:focus {
+  border-color: var(--accent-coral);
+  box-shadow: 0 0 0 3px rgba(232,93,117,0.12);
+}
+
+.chat-input::placeholder {
+  color: var(--text-muted);
+}
+
+.chat-send-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: var(--gradient-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 15px rgba(232,93,117,0.35);
+  transition: all 0.2s var(--ease-out);
+  flex-shrink: 0;
+}
+
+.chat-send-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 5px 20px rgba(232,93,117,0.45);
+}
+
+.chat-send-btn:active {
+  transform: scale(0.94);
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.45;
+  transform: none;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ==================== ONBOARDING SCREEN ==================== */
+
+.onboarding-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--gradient-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  animation: fadeSlideUp 0.5s var(--ease-out);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.onboarding-screen.hidden {
+  display: none;
+}
+
+.onboarding-content {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Hero ── */
+.onboarding-hero {
+  text-align: center;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.onboarding-icon {
+  font-size: 72px;
+  line-height: 1;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 8px 30px rgba(232, 93, 117, 0.4));
+  animation: floatIcon 3s ease-in-out infinite;
+}
+
+@keyframes floatIcon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.onboarding-title {
+  font-size: 36px;
+  font-weight: 800;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.onboarding-sub {
+  font-size: 15px;
+  color: var(--text-muted);
+}
+
+/* ── Card ── */
+.onboarding-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-xl);
+  padding: 24px 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-subtle);
+}
+
+.onboarding-step {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.onboarding-step strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ── Input de API Key + botón pegar ── */
+.onboarding-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.onboarding-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: var(--r-md);
+  padding: 13px 16px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 0;
+}
+
+.onboarding-input:focus {
+  border-color: var(--accent-coral);
+  box-shadow: 0 0 0 3px rgba(232, 93, 117, 0.15);
+}
+
+.onboarding-input::placeholder {
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+}
+
+.onboarding-paste-btn {
+  flex-shrink: 0;
+  padding: 13px 16px;
+  background: rgba(232, 93, 117, 0.12);
+  border: 1px solid rgba(232, 93, 117, 0.3);
+  border-radius: var(--r-md);
+  color: var(--accent-coral);
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s var(--ease-out);
+  white-space: nowrap;
+}
+
+.onboarding-paste-btn:hover,
+.onboarding-paste-btn:active {
+  background: rgba(232, 93, 117, 0.2);
+  border-color: var(--accent-coral);
+  transform: scale(1.03);
+}
+
+.onboarding-paste-btn.pasted {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+/* ── Selector de modelo ── */
+.onboarding-model-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding-model-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.onboarding-model-select {
+  width: 100%;
+  padding: 12px 36px 12px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-input);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: var(--font-ui);
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%239ca3af'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.onboarding-model-select:focus {
+  border-color: var(--accent-coral);
+}
+
+.onboarding-model-select option {
+  background: #1f2937;
+  color: var(--text-primary);
+}
+
+/* ── Botón principal ── */
+.onboarding-start-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--gradient-primary);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: var(--r-lg);
+  box-shadow: 0 4px 24px rgba(232, 93, 117, 0.35);
+  transition: all 0.25s var(--ease-out);
+  letter-spacing: 0.2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.onboarding-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(232, 93, 117, 0.45);
+}
+
+.onboarding-start-btn:active {
+  transform: translateY(0);
+}
+
+.onboarding-start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Link a Google AI Studio ── */
+.onboarding-link {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  color: var(--accent-gold);
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.onboarding-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}

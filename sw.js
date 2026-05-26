@@ -1,4 +1,4 @@
-const CACHE_NAME = 'thaichat-v1';
+const CACHE_NAME = 'thaichat-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -43,7 +43,7 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Fetch: Network first para la API, Cache first (con fallback a network) para assets
+// Fetch: Network-first para JS/CSS/HTML, Cache-first para imágenes/fuentes
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -52,31 +52,35 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Devuelve el recurso de la caché si existe
-        if (response) {
+  // Imágenes y fuentes → Cache-first (cambian poco)
+  const isStaticAsset = url.pathname.match(/\.(png|jpg|jpeg|svg|webp|woff2?)$/)
+    || url.hostname.includes('fonts.g');
+
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        return cached || fetch(event.request).then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
           return response;
-        }
-
-        // Si no está en caché, ir a la red
-        return fetch(event.request).then(networkResponse => {
-          // No cacheamos respuestas de terceros que no controlamos, excepto las fuentes
-          if (!event.request.url.startsWith(self.location.origin) && !event.request.url.includes('fonts.googleapis.com')) {
-            return networkResponse;
-          }
-
-          // Clonar la respuesta para guardarla en la caché (se consume al leerse)
-          const responseToCache = networkResponse.clone();
-
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return networkResponse;
         });
+      })
+    );
+    return;
+  }
+
+  // JS / CSS / HTML → Network-first (siempre carga lo más nuevo)
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+        return response;
+      })
+      .catch(() => {
+        // Sin internet → fallback al caché
+        return caches.match(event.request);
       })
   );
 });
+

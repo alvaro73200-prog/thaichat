@@ -18,21 +18,37 @@ class ThaiChatApp {
 
   // ────────── INIT ──────────
   init() {
-    // Si no hay API key configurada, abrir modal de ajustes al inicio
-    if (!Storage.getApiKey()) {
-      setTimeout(() => this.showSettings(), 500);
-    }
+    try {
+      console.log('[ThaiChat] Iniciando app...');
 
-    // Cargar modelo guardado o usar por defecto
-    const savedModel = Storage.getSettings().model || 'gemini-2.5-flash-lite';
-    this.translator = new TranslationService(Storage.getApiKey());
-    this.translator.model = savedModel;
-    this.setupEventListeners();
-    this.renderHistory();
-    this.renderFavorites();
-    
-    // Registrar Service Worker para PWA (offline)
-    registerServiceWorker();
+      // Si no hay API key → mostrar pantalla de onboarding
+      const apiKey = Storage.getApiKey();
+      console.log('[ThaiChat] API Key encontrada:', apiKey ? 'Sí' : 'No');
+
+      if (!apiKey) {
+        this.showOnboarding();
+      } else {
+        this.hideOnboarding();
+      }
+
+      // Cargar modelo guardado o usar por defecto
+      const savedModel = Storage.getSettings().model || 'gemini-2.5-flash-lite';
+      this.translator = new TranslationService(apiKey);
+      this.translator.model = savedModel;
+      console.log('[ThaiChat] Modelo:', savedModel);
+
+      this.setupEventListeners();
+      this.renderHistory();
+      this.renderFavorites();
+      this.loadChatHistory();
+
+      // Registrar Service Worker para PWA (offline)
+      registerServiceWorker();
+
+      console.log('[ThaiChat] App inicializada correctamente');
+    } catch (error) {
+      console.error('[ThaiChat] Error al inicializar:', error);
+    }
   }
 
   // ────────── EVENT LISTENERS ──────────
@@ -40,29 +56,22 @@ class ThaiChatApp {
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => document.querySelectorAll(sel);
 
-    // Traducir
-    $('#translate-btn').addEventListener('click', () => this.handleTranslate());
+    // Chat: botón enviar
+    $('#chat-send-btn').addEventListener('click', () => this.handleSend());
 
-    // Enter para traducir (Shift+Enter = nueva línea)
-    $('#input-text').addEventListener('keydown', (e) => {
+    // Chat: Enter = enviar, Shift+Enter = nueva línea
+    $('#chat-input').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        this.handleTranslate();
+        this.handleSend();
       }
     });
 
-    // Input: contador de caracteres + detección de idioma
-    $('#input-text').addEventListener('input', () => {
-      this.updateCharCount();
-      this.updateDirection();
-    });
-
-    // Borrar input
-    $('#btn-clear-input').addEventListener('click', () => {
-      $('#input-text').value = '';
-      this.updateCharCount();
-      this.updateDirection();
-      $('#input-text').focus();
+    // Chat: auto-resize del textarea
+    $('#chat-input').addEventListener('input', () => {
+      const el = $('#chat-input');
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
     });
 
     // Navegación inferior (tabs)
@@ -83,6 +92,7 @@ class ThaiChatApp {
       if (Storage.getHistory().length === 0) return;
       Storage.clearHistory();
       this.renderHistory();
+      this.clearChat();
       this.showToast('Historial borrado');
     });
 
@@ -94,48 +104,148 @@ class ThaiChatApp {
       this.showToast('Favoritos borrados');
     });
 
-    // Frases rápidas
+    // Frases rápidas → insertar en chat y enviar
     $$('.phrase-item').forEach(item => {
       item.addEventListener('click', () => {
         const text = item.dataset.phrase;
-        $('#input-text').value = text;
+        const input = $('#chat-input');
+        input.value = text;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
         this.switchTab('translate');
-        this.updateCharCount();
-        this.updateDirection();
-        // Auto-traducir
-        setTimeout(() => this.handleTranslate(), 200);
+        setTimeout(() => this.handleSend(), 150);
       });
     });
 
-    // Delegación de eventos para botones dinámicos en result-area
-    $('#result-area').addEventListener('click', (e) => {
-      const copyBtn = e.target.closest('.btn-copy');
-      const favBtn = e.target.closest('.btn-fav');
+    // Onboarding
+    this.setupOnboarding();
+  }
 
-      if (copyBtn) this.handleCopy(copyBtn);
-      if (favBtn) this.handleFavorite(favBtn);
+  // ────────── ONBOARDING ──────────
+  showOnboarding() {
+    const screen = document.getElementById('onboarding-screen');
+    if (screen) {
+      screen.classList.remove('hidden');
+      screen.style.display = '';  // Reset any inline display style
+      console.log('[ThaiChat] Mostrando onboarding');
+    }
+  }
+
+  hideOnboarding() {
+    const screen = document.getElementById('onboarding-screen');
+    if (screen) {
+      screen.classList.add('hidden');
+      console.log('[ThaiChat] Ocultando onboarding');
+    }
+  }
+
+  setupOnboarding() {
+    const pasteBtn  = document.getElementById('onboarding-paste-btn');
+    const startBtn  = document.getElementById('onboarding-start-btn');
+    const keyInput  = document.getElementById('onboarding-key-input');
+    const modelSel  = document.getElementById('onboarding-model-select');
+
+    console.log('[ThaiChat] Configurando onboarding, elementos encontrados:', {
+      pasteBtn: !!pasteBtn,
+      startBtn: !!startBtn,
+      keyInput: !!keyInput,
+      modelSel: !!modelSel
+    });
+
+    // Botón pegar: lee del portapapeles con un toque
+    pasteBtn.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        keyInput.value = text.trim();
+        pasteBtn.textContent = '✅ Pegado';
+        pasteBtn.classList.add('pasted');
+        setTimeout(() => {
+          pasteBtn.textContent = '📋 Pegar';
+          pasteBtn.classList.remove('pasted');
+        }, 2000);
+      } catch {
+        keyInput.focus();
+        this.showToast('📱 Pega manualmente con Ctrl+V o mantén presionado');
+      }
+    });
+
+    // Botón empezar
+    startBtn.addEventListener('click', () => {
+      console.log('[ThaiChat] Botón "Empezar" presionado');
+      try {
+        const key   = keyInput.value.trim();
+        const model = modelSel.value;
+
+        console.log('[ThaiChat] Key:', key ? `${key.substring(0, 8)}...` : '(vacía)');
+        console.log('[ThaiChat] Modelo seleccionado:', model);
+
+        if (!key) {
+          keyInput.focus();
+          keyInput.style.borderColor = 'var(--accent-coral)';
+          this.showToast('⚠️ Pega tu API Key primero');
+          return;
+        }
+
+        Storage.setApiKey(key);
+        Storage.updateSettings({ model });
+        this.translator.setApiKey(key);
+        this.translator.model = model;
+
+        this.hideOnboarding();
+        this.showToast('🇹🇭 ¡Listo! Ya puedes traducir');
+        console.log('[ThaiChat] Onboarding completado exitosamente');
+      } catch (error) {
+        console.error('[ThaiChat] Error en onboarding:', error);
+        this.showToast('❌ Error: ' + error.message);
+      }
+    });
+
+    // Enter en el input de key = empezar
+    keyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') startBtn.click();
     });
   }
 
-  // ────────── TRANSLATE ──────────
-  async handleTranslate() {
-    const input = document.getElementById('input-text').value.trim();
+  // ────────── SEND MESSAGE (CHAT) ──────────
+  async handleSend() {
+    const inputEl = document.getElementById('chat-input');
+    const input = inputEl.value.trim();
     if (!input || this.isTranslating || this.cooldownSeconds > 0) return;
 
-    // Verificar API key
     if (!Storage.getApiKey()) {
-      this.showSettings();
+      this.showOnboarding();
       this.showToast('⚠️ Configura tu API key primero');
       return;
     }
 
-    this.setLoading(true);
-    this.hideError();
+    // Limpiar input
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    // Ocultar pantalla de bienvenida si es el primer mensaje
+    const welcome = document.getElementById('chat-welcome');
+    if (welcome) welcome.remove();
+
+    // Detectar idioma
+    const isThai = /[\u0E00-\u0E7F]/.test(input);
+    const direction = isThai ? 'th-es' : 'es-th';
+
+    // Burbuja del usuario
+    this.addUserBubble(input, isThai);
+
+    // Indicador "traduciendo..."
+    const typingEl = this.addTypingIndicator();
+
+    this.isTranslating = true;
+    this.setSendBtnState(true);
 
     try {
       const result = await this.translator.translate(input);
 
-      // Guardar resultado con ID para favoritos
+      // Quitar typing indicator
+      typingEl.remove();
+
+      // Guardar en historial
       const entry = {
         input,
         direction: result.direction,
@@ -147,32 +257,222 @@ class ThaiChatApp {
         key_words: result.key_words || '',
         emotional_tone: result.emotional_tone || ''
       };
-
-      // Guardar en historial
       Storage.addToHistory(entry);
-
-      // Obtener el entry con ID del historial
       const history = Storage.getHistory();
-      this.lastResult = history[0];
+      const savedEntry = history[0];
 
-      // Renderizar
-      this.renderResult(result, input);
+      // Burbuja de traducción
+      this.addBotBubble(result, savedEntry);
       this.renderHistory();
 
     } catch (error) {
-      this.showError(error.message);
+      typingEl.remove();
+      this.addErrorBubble(error.message);
     } finally {
-      this.setLoading(false);
+      this.isTranslating = false;
       this.startCooldown();
     }
   }
 
-  // ────────── COOLDOWN (anti rate-limit) ──────────
-  startCooldown() {
-    const btn = document.getElementById('translate-btn');
-    const btnText = btn.querySelector('.btn-text');
-    this.cooldownSeconds = Math.ceil(this.COOLDOWN_MS / 1000);
+  // ────────── BURBUJAS ──────────
 
+  addUserBubble(text, isThai = false) {
+    const msgs = document.getElementById('chat-messages');
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble-group bubble-group--user';
+    bubble.innerHTML = `
+      <div class="chat-bubble chat-bubble--user">
+        <div class="chat-bubble__text${isThai ? ' thai-text' : ''}">${this.esc(text)}</div>
+        <div class="chat-bubble__time">${time}</div>
+      </div>
+    `;
+    msgs.appendChild(bubble);
+    this.scrollToBottom();
+  }
+
+  addBotBubble(result, savedEntry) {
+    const msgs = document.getElementById('chat-messages');
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const isThai = result.direction === 'es-th';
+    const flag = isThai ? '🇹🇭 TH' : '🇪🇸 ES';
+
+    // Construir detalles según dirección
+    let detailsHTML = '';
+    if (isThai) {
+      // ES → TH: mostrar pronunciación, literal, nota
+      if (result.romanization) detailsHTML += `<div class="chat-detail-row roman"><strong>📖 Pronunciación</strong>${this.esc(result.romanization)}</div>`;
+      if (result.literal)      detailsHTML += `<div class="chat-detail-row"><strong>📝 Literal</strong>${this.esc(result.literal)}</div>`;
+      if (result.tone_note)    detailsHTML += `<div class="chat-detail-row"><strong>💡 Nota</strong>${this.esc(result.tone_note)}</div>`;
+    } else {
+      // TH → ES: mostrar explicación, tono emocional, palabras clave
+      if (result.explanation)   detailsHTML += `<div class="chat-detail-row"><strong>💬 Explicación</strong>${this.esc(result.explanation)}</div>`;
+      if (result.emotional_tone) detailsHTML += `<div class="chat-detail-row"><strong>💕 Tono</strong>${this.esc(result.emotional_tone)}</div>`;
+      if (result.key_words)     detailsHTML += `<div class="chat-detail-row"><strong>📚 Palabras clave</strong>${this.esc(result.key_words)}</div>`;
+    }
+
+    const hasDetails = detailsHTML.length > 0;
+    const isFav = savedEntry ? Storage.isFavorite(savedEntry.id) : false;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble-group bubble-group--bot';
+    bubble.innerHTML = `
+      <div class="chat-bubble chat-bubble--bot" data-id="${savedEntry?.id || ''}">
+        <div class="chat-bubble__lang">${flag}</div>
+        <div class="chat-bubble__text${isThai ? ' thai-text' : ''}">${this.esc(result.translation)}</div>
+        ${hasDetails ? `
+        <div class="chat-bubble__details">
+          <div class="chat-bubble__divider"></div>
+          ${detailsHTML}
+          <div class="chat-bubble__actions">
+            <button class="chat-action-btn btn-copy-bubble" data-text="${this.escAttr(result.translation)}">📋 Copiar</button>
+            <button class="chat-action-btn btn-fav-bubble ${isFav ? 'fav-active' : ''}" data-id="${savedEntry?.id || ''}">${isFav ? '⭐' : '☆'} Favorito</button>
+          </div>
+        </div>` : ''}
+        <div class="chat-bubble__time">${time}${hasDetails ? ' • toca para ver más' : ''}</div>
+      </div>
+    `;
+
+    // Expandir al tocar
+    const bubbleEl = bubble.querySelector('.chat-bubble');
+    if (hasDetails) {
+      bubbleEl.addEventListener('click', (e) => {
+        if (e.target.closest('.chat-action-btn')) return;
+        bubbleEl.classList.toggle('expanded');
+        const timeEl = bubbleEl.querySelector('.chat-bubble__time');
+        if (bubbleEl.classList.contains('expanded')) {
+          timeEl.textContent = time;
+        } else {
+          timeEl.textContent = time + ' • toca para ver más';
+        }
+      });
+    }
+
+    // Copiar desde burbuja
+    const copyBtn = bubble.querySelector('.btn-copy-bubble');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.copyText(result.translation);
+        copyBtn.textContent = '✅ Copiado';
+        setTimeout(() => copyBtn.textContent = '📋 Copiar', 1500);
+      });
+    }
+
+    // Favorito desde burbuja
+    const favBtn = bubble.querySelector('.btn-fav-bubble');
+    if (favBtn && savedEntry) {
+      favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(favBtn.dataset.id);
+        if (Storage.isFavorite(id)) {
+          Storage.removeFavorite(id);
+          favBtn.textContent = '☆ Favorito';
+          favBtn.classList.remove('fav-active');
+          this.showToast('Eliminado de favoritos');
+        } else {
+          Storage.addFavorite(savedEntry);
+          favBtn.textContent = '⭐ Favorito';
+          favBtn.classList.add('fav-active');
+          this.showToast('⭐ Guardado en favoritos');
+        }
+        this.renderFavorites();
+      });
+    }
+
+    msgs.appendChild(bubble);
+    this.scrollToBottom();
+  }
+
+  addErrorBubble(message) {
+    const msgs = document.getElementById('chat-messages');
+    const el = document.createElement('div');
+    el.className = 'bubble-group bubble-group--bot';
+    el.innerHTML = `<div class="chat-bubble chat-bubble--bot" style="border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);"><div class="chat-bubble__text" style="color:#fca5a5;font-size:13px;">⚠️ ${this.esc(message)}</div></div>`;
+    msgs.appendChild(el);
+    this.scrollToBottom();
+  }
+
+  addTypingIndicator() {
+    const msgs = document.getElementById('chat-messages');
+    const el = document.createElement('div');
+    el.className = 'bubble-group bubble-group--bot';
+    el.innerHTML = `<div class="chat-typing"><span></span><span></span><span></span></div>`;
+    msgs.appendChild(el);
+    this.scrollToBottom();
+    return el;
+  }
+
+  scrollToBottom() {
+    const msgs = document.getElementById('chat-messages');
+    setTimeout(() => msgs.scrollTop = msgs.scrollHeight, 50);
+  }
+
+  // ────────── CARGAR HISTORIAL EN CHAT ──────────
+  loadChatHistory() {
+    const history = Storage.getHistory();
+    if (history.length === 0) return;
+
+    // Quitar welcome screen
+    const welcome = document.getElementById('chat-welcome');
+    if (welcome) welcome.remove();
+
+    // Mostrar últimas 20 traducciones en orden cronológico
+    const recent = [...history].reverse().slice(-20);
+
+    // Separador "Conversación anterior"
+    const msgs = document.getElementById('chat-messages');
+    const divider = document.createElement('div');
+    divider.className = 'chat-date-divider';
+    divider.textContent = 'Conversación anterior';
+    msgs.appendChild(divider);
+
+    recent.forEach(entry => {
+      const isThai = /[\u0E00-\u0E7F]/.test(entry.input);
+
+      // Burbuja usuario (sin animación para no saturar)
+      const userGroup = document.createElement('div');
+      userGroup.className = 'bubble-group bubble-group--user';
+      const entryTime = this.formatBubbleTime(entry.timestamp);
+      userGroup.innerHTML = `<div class="chat-bubble chat-bubble--user" style="animation:none"><div class="chat-bubble__text${isThai ? ' thai-text' : ''}">${this.esc(entry.input)}</div><div class="chat-bubble__time">${entryTime}</div></div>`;
+      msgs.appendChild(userGroup);
+
+      // Burbuja bot simplificada del historial
+      const botGroup = document.createElement('div');
+      botGroup.className = 'bubble-group bubble-group--bot';
+      const isThaiResult = entry.direction === 'es-th';
+      const flag = isThaiResult ? '🇹🇭 TH' : '🇪🇸 ES';
+      botGroup.innerHTML = `<div class="chat-bubble chat-bubble--bot" style="animation:none"><div class="chat-bubble__lang">${flag}</div><div class="chat-bubble__text${isThaiResult ? ' thai-text' : ''}">${this.esc(entry.translation)}</div><div class="chat-bubble__time">${entryTime}</div></div>`;
+      msgs.appendChild(botGroup);
+    });
+
+    // Separador "Ahora"
+    const nowDivider = document.createElement('div');
+    nowDivider.className = 'chat-date-divider';
+    nowDivider.textContent = 'Ahora';
+    msgs.appendChild(nowDivider);
+
+    this.scrollToBottom();
+  }
+
+  clearChat() {
+    const msgs = document.getElementById('chat-messages');
+    msgs.innerHTML = `
+      <div class="chat-welcome" id="chat-welcome">
+        <div class="chat-welcome__icon">🇹🇭</div>
+        <div class="chat-welcome__title">ThaiChat</div>
+        <div class="chat-welcome__sub">Escribe algo para traducir</div>
+      </div>
+    `;
+  }
+
+  // ────────── COOLDOWN ──────────
+  startCooldown() {
+    const btn = document.getElementById('chat-send-btn');
+    this.cooldownSeconds = Math.ceil(this.COOLDOWN_MS / 1000);
     clearInterval(this.cooldownTimer);
     btn.disabled = true;
 
@@ -182,148 +482,12 @@ class ThaiChatApp {
         clearInterval(this.cooldownTimer);
         this.cooldownSeconds = 0;
         btn.disabled = false;
-        btnText.textContent = '🔄 Traducir';
-      } else {
-        btnText.textContent = `⏳ Espera ${this.cooldownSeconds}s...`;
       }
     }, 1000);
   }
 
-  // ────────── RENDER RESULT ──────────
-  renderResult(result, input) {
-    const area = document.getElementById('result-area');
-    area.classList.remove('hidden');
-    area.classList.remove('fade-in');
-    // Trigger reflow for animation
-    void area.offsetWidth;
-    area.classList.add('fade-in');
-
-    const isFav = this.lastResult ? Storage.isFavorite(this.lastResult.id) : false;
-
-    if (result.direction === 'es-th') {
-      // Español/Inglés → Tailandés
-      area.innerHTML = `
-        <div class="result-direction">
-          <span class="flag">🇪🇸</span>
-          <span class="arrow">→</span>
-          <span class="flag">🇹🇭</span>
-        </div>
-        <div class="result-original">${this.esc(input)}</div>
-        <div class="result-translation-wrapper">
-          <div class="result-translation thai-text">${this.esc(result.translation)}</div>
-        </div>
-        <div class="result-section">
-          <div class="result-label">📖 Pronunciación</div>
-          <div class="result-romanization">${this.esc(result.romanization || '')}</div>
-        </div>
-        ${result.literal ? `
-        <div class="result-section">
-          <div class="result-label">📝 Literal</div>
-          <div class="result-literal">${this.esc(result.literal)}</div>
-        </div>` : ''}
-        ${result.tone_note ? `
-        <div class="result-section">
-          <div class="result-label">💡 Nota</div>
-          <div class="result-note">${this.esc(result.tone_note)}</div>
-        </div>` : ''}
-        <div class="result-actions">
-          <button class="btn-icon btn-copy" title="Copiar traducción">
-            <span class="icon">📋</span> Copiar
-          </button>
-          <button class="btn-icon btn-fav ${isFav ? 'active' : ''}" title="Favorito">
-            <span class="icon">${isFav ? '⭐' : '☆'}</span> Favorito
-          </button>
-        </div>
-      `;
-    } else {
-      // Tailandés → Español
-      area.innerHTML = `
-        <div class="result-direction">
-          <span class="flag">🇹🇭</span>
-          <span class="arrow">→</span>
-          <span class="flag">🇪🇸</span>
-        </div>
-        <div class="result-original thai-text">${this.esc(input)}</div>
-        <div class="result-translation-wrapper">
-          <div class="result-translation">${this.esc(result.translation)}</div>
-        </div>
-        ${result.explanation ? `
-        <div class="result-section">
-          <div class="result-label">💬 Explicación</div>
-          <div class="result-explanation">${this.esc(result.explanation)}</div>
-        </div>` : ''}
-        ${result.emotional_tone ? `
-        <div class="result-section">
-          <div class="result-label">💕 Tono emocional</div>
-          <div class="result-tone">${this.esc(result.emotional_tone)}</div>
-        </div>` : ''}
-        ${result.key_words ? `
-        <div class="result-section">
-          <div class="result-label">📚 Palabras clave</div>
-          <div class="result-note">${this.esc(result.key_words)}</div>
-        </div>` : ''}
-        <div class="result-actions">
-          <button class="btn-icon btn-copy" title="Copiar traducción">
-            <span class="icon">📋</span> Copiar
-          </button>
-          <button class="btn-icon btn-fav ${isFav ? 'active' : ''}" title="Favorito">
-            <span class="icon">${isFav ? '⭐' : '☆'}</span> Favorito
-          </button>
-        </div>
-      `;
-    }
-  }
-
-  // ────────── COPY ──────────
-  handleCopy(btn) {
-    if (!this.lastResult) return;
-
-    const text = this.lastResult.translation;
-    this.copyText(text);
-
-    btn.classList.add('copied');
-    btn.innerHTML = '<span class="icon">✅</span> Copiado';
-    setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.innerHTML = '<span class="icon">📋</span> Copiar';
-    }, 2000);
-  }
-
-  async copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      this.showToast('📋 Copiado al portapapeles');
-    } catch {
-      // Fallback para navegadores que no soportan clipboard API
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      this.showToast('📋 Copiado al portapapeles');
-    }
-  }
-
-  // ────────── FAVORITES ──────────
-  handleFavorite(btn) {
-    if (!this.lastResult) return;
-
-    const id = this.lastResult.id;
-    if (Storage.isFavorite(id)) {
-      Storage.removeFavorite(id);
-      btn.classList.remove('active');
-      btn.innerHTML = '<span class="icon">☆</span> Favorito';
-      this.showToast('Eliminado de favoritos');
-    } else {
-      Storage.addFavorite(this.lastResult);
-      btn.classList.add('active');
-      btn.innerHTML = '<span class="icon">⭐</span> Favorito';
-      this.showToast('⭐ Guardado en favoritos');
-    }
-    this.renderFavorites();
+  setSendBtnState(disabled) {
+    document.getElementById('chat-send-btn').disabled = disabled;
   }
 
   // ────────── RENDER HISTORY ──────────
@@ -432,49 +596,6 @@ class ThaiChatApp {
     });
   }
 
-  // ────────── DIRECTION INDICATOR ──────────
-  updateDirection() {
-    const text = document.getElementById('input-text').value;
-    const indicator = document.getElementById('direction-indicator');
-    const thaiRegex = /[\u0E00-\u0E7F]/;
-    const isThai = thaiRegex.test(text);
-
-    if (isThai) {
-      indicator.innerHTML = `
-        <span class="flag">🇹🇭</span>
-        <span class="lang">Tailandés</span>
-        <span class="arrow">→</span>
-        <span class="flag">🇪🇸</span>
-        <span class="lang">Español</span>
-      `;
-      indicator.classList.add('th-es');
-      document.getElementById('input-text').classList.add('thai-input');
-    } else {
-      indicator.innerHTML = `
-        <span class="flag">🇪🇸</span>
-        <span class="lang">Español</span>
-        <span class="arrow">→</span>
-        <span class="flag">🇹🇭</span>
-        <span class="lang">Tailandés</span>
-      `;
-      indicator.classList.remove('th-es');
-      document.getElementById('input-text').classList.remove('thai-input');
-    }
-  }
-
-  // ────────── CHAR COUNT ──────────
-  updateCharCount() {
-    const text = document.getElementById('input-text').value;
-    document.getElementById('char-count').textContent = `${text.length} / 2000`;
-  }
-
-  // ────────── LOADING STATE ──────────
-  setLoading(loading) {
-    this.isTranslating = loading;
-    const btn = document.getElementById('translate-btn');
-    btn.classList.toggle('loading', loading);
-    btn.disabled = loading;
-  }
 
   // ────────── SETTINGS ──────────
   showSettings() {
@@ -505,17 +626,22 @@ class ThaiChatApp {
     this.showToast(`✅ Guardado — Usando ${model}`);
   }
 
-  // ────────── ERROR HANDLING ──────────
-  showError(message) {
-    const area = document.getElementById('error-area');
-    area.classList.remove('hidden');
-    area.textContent = message;
-    // Hide result
-    document.getElementById('result-area').classList.add('hidden');
-  }
-
-  hideError() {
-    document.getElementById('error-area').classList.add('hidden');
+  // ────────── COPY TEXT ──────────
+  async copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.showToast('📋 Copiado al portapapeles');
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      this.showToast('📋 Copiado al portapapeles');
+    }
   }
 
   // ────────── TOAST ──────────
@@ -560,10 +686,29 @@ class ThaiChatApp {
     const mins = date.getMinutes().toString().padStart(2, '0');
     return `${day} ${month}, ${hours}:${mins}`;
   }
+
+  formatBubbleTime(timestamp) {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const mins = date.getMinutes().toString().padStart(2, '0');
+    if (isToday) return `${hours}:${mins}`;
+    const day = date.getDate();
+    const month = date.toLocaleString('es', { month: 'short' });
+    return `${day} ${month} ${hours}:${mins}`;
+  }
 }
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', () => {
-  const app = new ThaiChatApp();
-  app.init();
+  try {
+    const app = new ThaiChatApp();
+    app.init();
+    window.__thaichat_loaded = true;
+    console.log('[ThaiChat] DOMContentLoaded — app ready');
+  } catch (error) {
+    console.error('[ThaiChat] Error fatal al iniciar:', error);
+  }
 });
