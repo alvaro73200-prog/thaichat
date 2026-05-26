@@ -14,6 +14,7 @@ class ThaiChatApp {
     this.cooldownTimer = null;
     this.cooldownSeconds = 0;
     this.COOLDOWN_MS = 2000; // 2s anti doble-clic (free tier permite 30 RPM)
+    this.isOffline = !navigator.onLine;
   }
 
   // ────────── INIT ──────────
@@ -41,6 +42,7 @@ class ThaiChatApp {
       this.renderHistory();
       this.renderFavorites();
       this.loadChatHistory();
+      this.setupOfflineDetection();
 
       // Registrar Service Worker para PWA (offline)
       registerServiceWorker();
@@ -225,6 +227,9 @@ class ThaiChatApp {
       return;
     }
 
+    // Vibración al enviar
+    this.haptic('send');
+
     // Limpiar input
     inputEl.value = '';
     inputEl.style.height = 'auto';
@@ -272,9 +277,13 @@ class ThaiChatApp {
       this.addBotBubble(result, savedEntry);
       this.renderHistory();
 
+      // Vibración al recibir traducción
+      this.haptic('receive');
+
     } catch (error) {
       typingEl.remove();
       this.addErrorBubble(error.message);
+      this.haptic('error');
     } finally {
       this.isTranslating = false;
       this.startCooldown();
@@ -365,6 +374,7 @@ class ThaiChatApp {
         e.stopPropagation();
         this.copyText(result.translation);
         copyBtn.textContent = '✅ Copiado';
+        this.haptic('tap');
         setTimeout(() => copyBtn.textContent = '📋 Copiar', 1500);
       });
     }
@@ -380,11 +390,13 @@ class ThaiChatApp {
           favBtn.textContent = '☆ Favorito';
           favBtn.classList.remove('fav-active');
           this.showToast('Eliminado de favoritos');
+          this.haptic('tap');
         } else {
           Storage.addFavorite(savedEntry);
           favBtn.textContent = '⭐ Favorito';
           favBtn.classList.add('fav-active');
           this.showToast('⭐ Guardado en favoritos');
+          this.haptic('success');
         }
         this.renderFavorites();
       });
@@ -591,6 +603,7 @@ class ThaiChatApp {
   switchTab(tab) {
     if (tab === this.currentTab) return;
     this.currentTab = tab;
+    this.haptic('tap');
 
     // Update nav items
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -705,6 +718,46 @@ class ThaiChatApp {
     const day = date.getDate();
     const month = date.toLocaleString('es', { month: 'short' });
     return `${day} ${month} ${hours}:${mins}`;
+  }
+
+  // ────────── HAPTIC FEEDBACK ──────────
+  haptic(type = 'tap') {
+    if (!navigator.vibrate) return;
+    switch (type) {
+      case 'tap':     navigator.vibrate(10); break;
+      case 'send':    navigator.vibrate(15); break;
+      case 'receive': navigator.vibrate([10, 30, 10]); break;
+      case 'success': navigator.vibrate([10, 50, 20]); break;
+      case 'error':   navigator.vibrate([30, 50, 30, 50, 30]); break;
+      default:        navigator.vibrate(10);
+    }
+  }
+
+  // ────────── OFFLINE DETECTION ──────────
+  setupOfflineDetection() {
+    // Crear el banner de offline
+    const banner = document.createElement('div');
+    banner.id = 'offline-banner';
+    banner.className = 'offline-banner';
+    banner.innerHTML = '📡 Sin conexión — puedes ver tu historial y favoritos';
+    document.querySelector('.app').prepend(banner);
+
+    const updateStatus = () => {
+      this.isOffline = !navigator.onLine;
+      banner.classList.toggle('visible', this.isOffline);
+      if (!this.isOffline) {
+        this.showToast('✅ Conexión restaurada');
+        this.haptic('success');
+      } else {
+        this.haptic('error');
+      }
+    };
+
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+
+    // Estado inicial
+    if (this.isOffline) banner.classList.add('visible');
   }
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'thaichat-v7';
+const CACHE_NAME = 'thaichat-v8';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

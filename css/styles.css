@@ -115,6 +115,37 @@ textarea {
   position: relative;
 }
 
+/* ==================== OFFLINE BANNER ==================== */
+.offline-banner {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(232,93,117,0.12) 100%);
+  border-bottom: 1px solid rgba(245,158,11,0.3);
+  color: var(--accent-gold-light);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+  flex-shrink: 0;
+  animation: slideDown 0.3s var(--ease-out);
+}
+
+.offline-banner.visible {
+  display: flex;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ==================== HEADER ==================== */
 .header {
   height: 68px;
