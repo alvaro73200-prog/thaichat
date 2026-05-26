@@ -84,7 +84,7 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1.5;
 }
 
@@ -117,13 +117,13 @@ textarea {
 
 /* ==================== HEADER ==================== */
 .header {
-  height: 64px;
+  height: 72px;
   padding-top: var(--safe-top);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 20px;
-  padding-right: 16px;
+  padding-left: 22px;
+  padding-right: 18px;
   position: relative;
   z-index: 100;
   flex-shrink: 0;
@@ -146,12 +146,12 @@ textarea {
 }
 
 .header__logo {
-  font-size: 32px;
+  font-size: 40px;
   line-height: 1;
 }
 
 .header__title {
-  font-size: 24px;
+  font-size: 30px;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -161,13 +161,13 @@ textarea {
 }
 
 .header__settings-btn {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--r-full);
-  font-size: 24px;
+  font-size: 30px;
   transition: background 0.2s;
 }
 
@@ -605,7 +605,7 @@ textarea {
 .bottom-nav {
   display: flex;
   align-items: center;
-  height: 76px;
+  height: 88px;
   padding-bottom: var(--safe-bottom);
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-subtle);
@@ -620,10 +620,10 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 4px;
+  gap: 5px;
+  padding: 10px 4px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   transition: all 0.2s var(--ease-out);
   position: relative;
@@ -631,7 +631,7 @@ textarea {
 }
 
 .nav-item .nav-icon {
-  font-size: 28px;
+  font-size: 34px;
   transition: transform 0.2s var(--ease-spring);
 }
 
@@ -649,7 +649,7 @@ textarea {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 32px;
+  width: 40px;
   height: 3px;
   background: var(--gradient-primary);
   border-radius: 0 0 var(--r-full) var(--r-full);
@@ -668,15 +668,15 @@ textarea {
 }
 
 .section-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .btn-clear {
-  font-size: 15px;
+  font-size: 17px;
   color: var(--text-muted);
-  padding: 8px 14px;
+  padding: 10px 16px;
   border-radius: var(--r-full);
   transition: all 0.2s;
 }
@@ -690,12 +690,12 @@ textarea {
 .favorites-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .history-item,
 .favorite-item {
-  padding: 16px 18px;
+  padding: 20px 22px;
   transition: all 0.2s var(--ease-out);
   cursor: default;
 }
@@ -706,55 +706,55 @@ textarea {
 }
 
 .history-time {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-weight: 500;
 }
 
 .history-input {
-  font-size: 15px;
+  font-size: 18px;
   color: var(--text-secondary);
   line-height: 1.4;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .history-arrow {
-  font-size: 14px;
-  margin: 6px 0;
+  font-size: 16px;
+  margin: 8px 0;
   color: var(--text-muted);
 }
 
 .history-output {
-  font-size: 17px;
+  font-size: 21px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.5;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .history-roman {
-  font-size: 14px;
+  font-size: 17px;
   color: var(--accent-gold);
   font-style: italic;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .history-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .btn-icon-sm {
-  width: 42px;
-  height: 42px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--r-full);
-  font-size: 20px;
+  font-size: 24px;
   background: rgba(255, 255, 255, 0.04);
   transition: all 0.2s;
 }
@@ -776,20 +776,20 @@ textarea {
 }
 
 .empty-icon {
-  font-size: 56px;
-  margin-bottom: 14px;
+  font-size: 72px;
+  margin-bottom: 18px;
   opacity: 0.7;
 }
 
 .empty-text {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .empty-subtext {
-  font-size: 15px;
+  font-size: 18px;
   color: var(--text-muted);
 }
 
@@ -801,7 +801,7 @@ textarea {
 }
 
 .phrase-item {
-  padding: 18px 14px;
+  padding: 22px 16px;
   border-radius: var(--r-lg);
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
@@ -824,22 +824,22 @@ textarea {
 }
 
 .phrase-emoji {
-  font-size: 32px;
-  margin-bottom: 8px;
+  font-size: 40px;
+  margin-bottom: 10px;
   display: block;
 }
 
 .phrase-text {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.3;
 }
 
 .phrase-sub {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 /* ==================== SETTINGS MODAL ==================== */
@@ -890,18 +890,18 @@ textarea {
 }
 
 .modal-title {
-  font-size: 22px;
+  font-size: 27px;
   font-weight: 700;
 }
 
 .modal-close {
-  width: 36px;
-  height: 36px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--r-full);
-  font-size: 20px;
+  font-size: 24px;
   color: var(--text-muted);
   transition: all 0.2s;
 }
@@ -912,27 +912,27 @@ textarea {
 }
 
 .settings-group {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .settings-label {
   display: block;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .settings-input {
   width: 100%;
-  padding: 14px 18px;
+  padding: 18px 22px;
   background: var(--bg-input);
   border: 1px solid var(--border-input);
   border-radius: var(--r-md);
   color: var(--text-primary);
-  font-size: 17px;
+  font-size: 20px;
   outline: none;
   transition: border-color 0.2s;
 }
@@ -963,19 +963,19 @@ select.settings-input option {
 }
 
 .settings-hint {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--text-muted);
-  margin-top: 6px;
+  margin-top: 8px;
   line-height: 1.4;
 }
 
 .btn-save-settings {
   width: 100%;
-  padding: 16px;
+  padding: 20px;
   border-radius: var(--r-lg);
   background: var(--gradient-primary);
   color: white;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
   transition: all 0.2s var(--ease-out);
   box-shadow: var(--shadow-glow-coral);
@@ -993,15 +993,15 @@ select.settings-input option {
 /* ==================== TOAST NOTIFICATION ==================== */
 .toast {
   position: fixed;
-  bottom: calc(76px + 16px + var(--safe-bottom));
+  bottom: calc(88px + 18px + var(--safe-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(80px);
-  padding: 12px 24px;
+  padding: 16px 30px;
   background: var(--bg-card-solid);
   border: 1px solid var(--border-light);
   border-radius: var(--r-full);
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 500;
   box-shadow: var(--shadow-lg);
   z-index: 300;
@@ -1152,23 +1152,23 @@ button:focus:not(:focus-visible) {
 }
 
 .chat-welcome__icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+  font-size: 80px;
+  margin-bottom: 20px;
   filter: drop-shadow(0 4px 20px rgba(232,93,117,0.3));
 }
 
 .chat-welcome__title {
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .chat-welcome__sub {
-  font-size: 16px;
+  font-size: 20px;
   color: var(--text-muted);
 }
 
@@ -1177,8 +1177,8 @@ button:focus:not(:focus-visible) {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 10px 0;
-  font-size: 13px;
+  margin: 12px 0;
+  font-size: 15px;
   color: var(--text-muted);
   font-weight: 500;
 }
@@ -1208,10 +1208,10 @@ button:focus:not(:focus-visible) {
 
 /* ── Burbuja base ── */
 .chat-bubble {
-  max-width: 85%;
+  max-width: 88%;
   min-width: 60px;
-  border-radius: 20px;
-  padding: 12px 16px;
+  border-radius: 24px;
+  padding: 16px 20px;
   position: relative;
   cursor: pointer;
   animation: bubbleIn 0.3s var(--ease-spring);
@@ -1253,22 +1253,22 @@ button:focus:not(:focus-visible) {
 
 /* ── Texto principal de la burbuja ── */
 .chat-bubble__text {
-  font-size: 17px;
+  font-size: 21px;
   line-height: 1.5;
   word-break: break-word;
 }
 
 .chat-bubble__text.thai-text {
   font-family: var(--font-thai);
-  font-size: 20px;
+  font-size: 24px;
   line-height: 1.8;
 }
 
 /* ── Hora ── */
 .chat-bubble__time {
-  font-size: 12px;
+  font-size: 14px;
   opacity: 0.65;
-  margin-top: 5px;
+  margin-top: 6px;
   text-align: right;
   line-height: 1;
 }
@@ -1280,8 +1280,8 @@ button:focus:not(:focus-visible) {
 
 /* ── Bandera de idioma (en burbuja bot) ── */
 .chat-bubble__lang {
-  font-size: 13px;
-  margin-bottom: 7px;
+  font-size: 16px;
+  margin-bottom: 8px;
   opacity: 0.7;
 }
 
@@ -1294,14 +1294,14 @@ button:focus:not(:focus-visible) {
 }
 
 .chat-bubble.expanded .chat-bubble__details {
-  max-height: 500px;
+  max-height: 600px;
   opacity: 1;
 }
 
 .chat-bubble__divider {
   height: 1px;
   background: rgba(255,255,255,0.1);
-  margin: 10px 0;
+  margin: 12px 0;
 }
 
 .chat-bubble--bot .chat-bubble__divider {
@@ -1309,17 +1309,17 @@ button:focus:not(:focus-visible) {
 }
 
 .chat-detail-row {
-  font-size: 14px;
+  font-size: 17px;
   line-height: 1.5;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .chat-detail-row strong {
-  font-size: 12px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
   display: block;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   opacity: 0.7;
 }
 
@@ -1334,13 +1334,13 @@ button:focus:not(:focus-visible) {
 
 .chat-bubble__actions {
   display: flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .chat-action-btn {
-  font-size: 13px;
-  padding: 6px 14px;
+  font-size: 16px;
+  padding: 8px 18px;
   border-radius: var(--r-full);
   background: rgba(255,255,255,0.07);
   border: 1px solid var(--border-subtle);
@@ -1365,19 +1365,19 @@ button:focus:not(:focus-visible) {
 .chat-typing {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 14px 18px;
+  gap: 7px;
+  padding: 18px 22px;
   background: var(--bg-card-solid);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
   border-bottom-left-radius: 5px;
-  max-width: 80px;
+  max-width: 100px;
   animation: bubbleIn 0.3s var(--ease-spring);
 }
 
 .chat-typing span {
-  width: 9px;
-  height: 9px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--text-muted);
   display: inline-block;
@@ -1401,8 +1401,8 @@ button:focus:not(:focus-visible) {
 .chat-input-bar {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
-  padding: 12px 16px calc(12px + var(--safe-bottom));
+  gap: 14px;
+  padding: 16px 20px calc(16px + var(--safe-bottom));
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-subtle);
   flex-shrink: 0;
@@ -1412,14 +1412,14 @@ button:focus:not(:focus-visible) {
   flex: 1;
   background: var(--bg-input);
   border: 1px solid var(--border-input);
-  border-radius: 26px;
-  padding: 14px 18px;
+  border-radius: 30px;
+  padding: 18px 22px;
   color: var(--text-primary);
-  font-size: 17px;
+  font-size: 20px;
   font-family: var(--font-ui);
   outline: none;
   resize: none;
-  max-height: 140px;
+  max-height: 160px;
   overflow-y: auto;
   line-height: 1.5;
   transition: border-color 0.2s;
@@ -1436,9 +1436,9 @@ button:focus:not(:focus-visible) {
 }
 
 .chat-send-btn {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
   border-radius: 50%;
   background: var(--gradient-primary);
   color: white;
@@ -1501,9 +1501,9 @@ button:focus:not(:focus-visible) {
 }
 
 .onboarding-icon {
-  font-size: 80px;
+  font-size: 96px;
   line-height: 1;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   filter: drop-shadow(0 8px 30px rgba(232, 93, 117, 0.4));
   animation: floatIcon 3s ease-in-out infinite;
 }
@@ -1514,18 +1514,18 @@ button:focus:not(:focus-visible) {
 }
 
 .onboarding-title {
-  font-size: 40px;
+  font-size: 48px;
   font-weight: 800;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   letter-spacing: -0.5px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .onboarding-sub {
-  font-size: 17px;
+  font-size: 21px;
   color: var(--text-muted);
 }
 
@@ -1567,9 +1567,9 @@ button:focus:not(:focus-visible) {
   background: var(--bg-input);
   border: 1px solid var(--border-input);
   border-radius: var(--r-md);
-  padding: 15px 18px;
+  padding: 19px 22px;
   color: var(--text-primary);
-  font-size: 17px;
+  font-size: 20px;
   font-family: monospace;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -1588,12 +1588,12 @@ button:focus:not(:focus-visible) {
 
 .onboarding-paste-btn {
   flex-shrink: 0;
-  padding: 15px 18px;
+  padding: 19px 20px;
   background: rgba(232, 93, 117, 0.12);
   border: 1px solid rgba(232, 93, 117, 0.3);
   border-radius: var(--r-md);
   color: var(--accent-coral);
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
   transition: all 0.2s var(--ease-out);
   white-space: nowrap;
@@ -1629,19 +1629,19 @@ button:focus:not(:focus-visible) {
 
 .onboarding-model-select {
   width: 100%;
-  padding: 14px 38px 14px 16px;
+  padding: 18px 42px 18px 20px;
   background: var(--bg-input);
   border: 1px solid var(--border-input);
   border-radius: var(--r-md);
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 19px;
   font-family: var(--font-ui);
   outline: none;
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%239ca3af'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 16px center;
+  background-position: right 18px center;
   cursor: pointer;
   transition: border-color 0.2s;
 }
@@ -1658,10 +1658,10 @@ button:focus:not(:focus-visible) {
 /* ── Botón principal ── */
 .onboarding-start-btn {
   width: 100%;
-  padding: 18px;
+  padding: 22px;
   background: var(--gradient-primary);
   color: white;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   border-radius: var(--r-lg);
   box-shadow: 0 4px 24px rgba(232, 93, 117, 0.35);
@@ -1690,7 +1690,7 @@ button:focus:not(:focus-visible) {
 .onboarding-link {
   display: block;
   text-align: center;
-  font-size: 15px;
+  font-size: 18px;
   color: var(--accent-gold);
   text-decoration: none;
   transition: opacity 0.2s;
