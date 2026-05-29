@@ -22,7 +22,7 @@
 </head>
 <body>
 
-  <div class="app">
+  <div class="app" id="app">
 
     <!-- ===== ONBOARDING (solo si no hay API key) ===== -->
     <div class="onboarding-screen" id="onboarding-screen">
@@ -31,11 +31,26 @@
         <div class="onboarding-hero">
           <div class="onboarding-icon">🇹🇭</div>
           <h1 class="onboarding-title">ThaiChat</h1>
-          <p class="onboarding-sub">Tu traductor personal de tailandés</p>
+          <p class="onboarding-sub" data-i18n="onboarding.sub">Tu traductor personal de tailandés</p>
+        </div>
+
+        <!-- Toggle de idioma en onboarding -->
+        <div class="lang-toggle" id="onboarding-lang-toggle">
+          <button class="lang-btn lang-btn--active" data-lang="es">🇪🇸 Español</button>
+          <button class="lang-btn" data-lang="th">🇹🇭 ภาษาไทย</button>
+        </div>
+
+        <!-- Selector de Perfil -->
+        <div class="profile-group" style="margin-top: 15px; padding: 0 20px;">
+          <label class="onboarding-model-label" style="text-align: center; display: block;" data-i18n="profile.label">👤 Perfil de uso</label>
+          <div class="profile-toggle" id="onboarding-profile-toggle">
+            <button class="profile-btn profile-btn--active" data-profile="me" data-i18n="profile.me">👦 Mi Perfil (Hablante Español)</button>
+            <button class="profile-btn" data-profile="her" data-i18n="profile.her">👱‍♀️ Su Perfil (Hablante Tailandés)</button>
+          </div>
         </div>
 
         <div class="onboarding-card">
-          <p class="onboarding-step">Para empezar necesitas una <strong>API Key de Gemini</strong> (es gratis)</p>
+          <p class="onboarding-step" data-i18n="onboarding.step">Para empezar necesitas una <strong>API Key de Gemini</strong> (es gratis)</p>
 
           <div class="onboarding-input-group">
             <input
@@ -46,13 +61,13 @@
               autocomplete="off"
               spellcheck="false"
             >
-            <button class="onboarding-paste-btn" id="onboarding-paste-btn">
+            <button class="onboarding-paste-btn" id="onboarding-paste-btn" data-i18n="onboarding.paste">
               📋 Pegar
             </button>
           </div>
 
           <div class="onboarding-model-group">
-            <label class="onboarding-model-label" for="onboarding-model-select">Modelo</label>
+            <label class="onboarding-model-label" for="onboarding-model-select" data-i18n="onboarding.model">Modelo</label>
             <select class="onboarding-model-select" id="onboarding-model-select">
               <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash Lite (recomendado)</option>
               <option value="gemini-2.5-flash">🚀 Gemini 2.5 Flash</option>
@@ -61,7 +76,7 @@
             </select>
           </div>
 
-          <button class="onboarding-start-btn" id="onboarding-start-btn">
+          <button class="onboarding-start-btn" id="onboarding-start-btn" data-i18n="onboarding.start">
             🚀 Empezar a traducir
           </button>
 
@@ -70,6 +85,7 @@
             target="_blank"
             rel="noopener"
             class="onboarding-link"
+            data-i18n="onboarding.no-key"
           >
             ¿No tienes una? Créala gratis aquí →
           </a>
@@ -84,9 +100,11 @@
         <span class="header__logo">🇹🇭</span>
         <h1 class="header__title">ThaiChat</h1>
       </div>
-      <button class="header__settings-btn" id="settings-btn" title="Ajustes" aria-label="Abrir ajustes">
-        ⚙️
-      </button>
+      <div class="header__actions">
+        <button class="zoom-btn" id="zoom-out-btn" aria-label="Reducir texto" title="A-">A−</button>
+        <button class="zoom-btn" id="zoom-in-btn"  aria-label="Aumentar texto" title="A+">A+</button>
+        <button class="header__settings-btn" id="settings-btn" title="Ajustes" aria-label="Abrir ajustes">⚙️</button>
+      </div>
     </header>
 
     <!-- ===== MAIN CONTENT ===== -->
@@ -100,16 +118,20 @@
           <div class="chat-messages" id="chat-messages">
             <div class="chat-welcome" id="chat-welcome">
               <div class="chat-welcome__icon">🇹🇭</div>
-              <div class="chat-welcome__title">ThaiChat</div>
-              <div class="chat-welcome__sub">Escribe algo para traducir</div>
+              <div class="chat-welcome__title" data-i18n="chat.welcome.title">ThaiChat</div>
+              <div class="chat-welcome__sub" data-i18n="chat.welcome.sub">Escribe algo para traducir</div>
             </div>
           </div>
 
           <!-- Barra de input fija abajo -->
           <div class="chat-input-bar" id="chat-input-bar">
+            <button class="chat-paste-btn" id="chat-paste-btn" aria-label="Pegar y enviar" title="Pegar y traducir">
+              📋
+            </button>
             <textarea
               id="chat-input"
               class="chat-input"
+              data-i18n-placeholder="chat.placeholder"
               placeholder="Escribe tu mensaje..."
               rows="1"
               maxlength="2000"
@@ -130,14 +152,14 @@
       <!-- ─── TAB: HISTORIAL ─── -->
       <div class="tab-pane" id="tab-history">
         <div class="section-header">
-          <h2 class="section-title">📜 Historial</h2>
-          <button class="btn-clear" id="clear-history">Borrar todo</button>
+          <h2 class="section-title" data-i18n="history.title">📜 Historial</h2>
+          <button class="btn-clear" id="clear-history" data-i18n="history.clear">Borrar todo</button>
         </div>
         <div class="history-list" id="history-list">
           <div class="empty-state">
             <div class="empty-icon">📜</div>
-            <div class="empty-text">No hay traducciones aún</div>
-            <div class="empty-subtext">Tus traducciones aparecerán aquí</div>
+            <div class="empty-text" data-i18n="history.empty">No hay traducciones aún</div>
+            <div class="empty-subtext" data-i18n="history.empty-sub">Tus traducciones aparecerán aquí</div>
           </div>
         </div>
       </div>
@@ -145,14 +167,14 @@
       <!-- ─── TAB: FAVORITOS ─── -->
       <div class="tab-pane" id="tab-favorites">
         <div class="section-header">
-          <h2 class="section-title">⭐ Favoritos</h2>
-          <button class="btn-clear" id="clear-favorites">Borrar todo</button>
+          <h2 class="section-title" data-i18n="favs.title">⭐ Favoritos</h2>
+          <button class="btn-clear" id="clear-favorites" data-i18n="favs.clear">Borrar todo</button>
         </div>
         <div class="favorites-list" id="favorites-list">
           <div class="empty-state">
             <div class="empty-icon">⭐</div>
-            <div class="empty-text">Sin favoritos</div>
-            <div class="empty-subtext">Guarda traducciones tocando ⭐</div>
+            <div class="empty-text" data-i18n="favs.empty">Sin favoritos</div>
+            <div class="empty-subtext" data-i18n="favs.empty-sub">Guarda traducciones tocando ⭐</div>
           </div>
         </div>
       </div>
@@ -160,7 +182,7 @@
       <!-- ─── TAB: FRASES RÁPIDAS ─── -->
       <div class="tab-pane" id="tab-phrases">
         <div class="section-header">
-          <h2 class="section-title">💬 Frases Rápidas</h2>
+          <h2 class="section-title" data-i18n="phrases.title">💬 Frases Rápidas</h2>
         </div>
         <div class="phrases-grid" id="phrases-grid">
           <button class="phrase-item" data-phrase="Buenos días, ¿cómo dormiste?">
@@ -232,19 +254,19 @@
     <nav class="bottom-nav">
       <button class="nav-item active" data-tab="translate">
         <span class="nav-icon">💬</span>
-        <span>Traducir</span>
+        <span data-i18n="nav.translate">Traducir</span>
       </button>
       <button class="nav-item" data-tab="history">
         <span class="nav-icon">📜</span>
-        <span>Historial</span>
+        <span data-i18n="nav.history">Historial</span>
       </button>
       <button class="nav-item" data-tab="favorites">
         <span class="nav-icon">⭐</span>
-        <span>Favoritos</span>
+        <span data-i18n="nav.favorites">Favoritos</span>
       </button>
       <button class="nav-item" data-tab="phrases">
         <span class="nav-icon">💬</span>
-        <span>Frases</span>
+        <span data-i18n="nav.phrases">Frases</span>
       </button>
     </nav>
 
@@ -252,12 +274,12 @@
     <div class="modal-overlay" id="settings-overlay">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 class="modal-title">⚙️ Ajustes</h2>
+          <h2 class="modal-title" data-i18n="settings.title">⚙️ Ajustes</h2>
           <button class="modal-close" id="close-settings" aria-label="Cerrar">✕</button>
         </div>
 
         <div class="settings-group">
-          <label class="settings-label" for="api-key-input">🔑 API Key de Gemini</label>
+          <label class="settings-label" for="api-key-input" data-i18n="settings.key-label">🔑 API Key de Gemini</label>
           <input
             type="password"
             class="settings-input"
@@ -266,13 +288,13 @@
             autocomplete="off"
           >
           <p class="settings-hint">
-            Obtén tu key gratis en
+            <span data-i18n="settings.key-hint">Obtén tu key gratis en</span>
             <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--accent-gold);">Google AI Studio</a>
           </p>
         </div>
 
         <div class="settings-group">
-          <label class="settings-label" for="model-select">🤖 Modelo de Gemini</label>
+          <label class="settings-label" for="model-select" data-i18n="settings.model-label">🤖 Modelo de Gemini</label>
           <select class="settings-input" id="model-select">
             <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash Lite (rápido)</option>
             <option value="gemini-2.5-flash">🚀 Gemini 2.5 Flash</option>
@@ -281,12 +303,39 @@
             <option value="gemini-3.5-flash">🔥 Gemini 3.5 Flash (nuevo)</option>
             <option value="gemini-3.1-flash-lite">⚡ Gemini 3.1 Flash Lite</option>
           </select>
-          <p class="settings-hint">
-            Si un modelo da error 429, cambia a otro — cada uno tiene su propia cuota.
-          </p>
+          <p class="settings-hint" data-i18n="settings.model-hint">Si un modelo da error 429, cambia a otro — cada uno tiene su propia cuota.</p>
         </div>
 
-        <button class="btn-save-settings" id="save-settings">
+        <!-- Idioma -->
+        <div class="settings-group">
+          <label class="settings-label" data-i18n="settings.lang-label">🌐 Idioma de la interfaz</label>
+          <div class="lang-toggle" id="settings-lang-toggle">
+            <button class="lang-btn lang-btn--active" data-lang="es">🇪🇸 Español</button>
+            <button class="lang-btn" data-lang="th">🇹🇭 ภาษาไทย</button>
+          </div>
+        </div>
+
+        <!-- Perfil -->
+        <div class="settings-group">
+          <label class="settings-label" data-i18n="profile.label">👤 Perfil de uso</label>
+          <div class="profile-toggle" id="settings-profile-toggle">
+            <button class="profile-btn profile-btn--active" data-profile="me" data-i18n="profile.me">👦 Mi Perfil (Hablante Español)</button>
+            <button class="profile-btn" data-profile="her" data-i18n="profile.her">👱‍♀️ Su Perfil (Hablante Tailandés)</button>
+          </div>
+        </div>
+
+        <!-- Zoom -->
+        <div class="settings-group">
+          <label class="settings-label" data-i18n="settings.zoom-label">🔍 Tamaño del texto</label>
+          <div class="zoom-controls">
+            <button class="zoom-ctrl-btn" id="settings-zoom-out">A−</button>
+            <span class="zoom-level" id="zoom-level-display">100%</span>
+            <button class="zoom-ctrl-btn" id="settings-zoom-in">A+</button>
+            <button class="zoom-reset-btn" id="settings-zoom-reset">Reset</button>
+          </div>
+        </div>
+
+        <button class="btn-save-settings" id="save-settings" data-i18n="settings.save">
           💾 Guardar
         </button>
       </div>
@@ -304,8 +353,6 @@
   <script>
     window.addEventListener('load', function() {
       setTimeout(function() {
-        // Si después de 2s el onboarding no tiene event listeners funcionales,
-        // probablemente los módulos no cargaron
         if (!window.__thaichat_loaded) {
           console.warn('[ThaiChat] Los módulos ES no se cargaron. ¿Estás abriendo el archivo directamente?');
         }

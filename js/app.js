@@ -3,6 +3,7 @@
 import TranslationService from './api.js';
 import * as Storage from './storage.js';
 import { registerServiceWorker } from './pwa.js';
+import * as i18n from './i18n.js';
 
 // ==================== APP CLASS ====================
 class ThaiChatApp {
@@ -21,6 +22,20 @@ class ThaiChatApp {
   init() {
     try {
       console.log('[ThaiChat] Iniciando app...');
+
+      // Cargar idioma guardado
+      const savedLang = Storage.getSettings().lang || 'es';
+      i18n.setLang(savedLang);
+      i18n.applyAll();
+      this.syncLangToggles(savedLang);
+
+      // Cargar perfil guardado
+      const savedProfile = Storage.getSettings().profile || 'me';
+      this.syncProfileToggles(savedProfile);
+
+      // Cargar zoom guardado
+      const savedZoom = Storage.getSettings().zoom || 100;
+      this.applyZoom(savedZoom);
 
       // Si no hay API key → mostrar pantalla de onboarding
       const apiKey = Storage.getApiKey();
@@ -123,6 +138,59 @@ class ThaiChatApp {
         input.style.height = Math.min(input.scrollHeight, 120) + 'px';
         this.switchTab('translate');
         setTimeout(() => this.handleSend(), 150);
+      });
+    });
+
+    // Botón pegar en barra de input → pega y envía automáticamente
+    document.getElementById('chat-paste-btn')?.addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (!text.trim()) { this.showToast(i18n.t('toast.clipboard-empty')); return; }
+        const inputEl = document.getElementById('chat-input');
+        inputEl.value = text.trim();
+        inputEl.style.height = 'auto';
+        inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+        this.haptic('tap');
+        setTimeout(() => this.handleSend(), 80);
+      } catch {
+        this.showToast(i18n.t('toast.paste-manual'));
+      }
+    });
+
+    // Zoom header
+    document.getElementById('zoom-out-btn')?.addEventListener('click', () => this.changeZoom(-10));
+    document.getElementById('zoom-in-btn')?.addEventListener('click',  () => this.changeZoom(+10));
+
+    // Zoom settings
+    document.getElementById('settings-zoom-out')?.addEventListener('click', () => this.changeZoom(-10));
+    document.getElementById('settings-zoom-in')?.addEventListener('click',  () => this.changeZoom(+10));
+    document.getElementById('settings-zoom-reset')?.addEventListener('click', () => { this.applyZoom(100); Storage.updateSettings({ zoom: 100 }); });
+
+    // Lang toggles (onboarding + settings)
+    document.querySelectorAll('.lang-toggle').forEach(toggle => {
+      toggle.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const lang = btn.dataset.lang;
+          i18n.setLang(lang);
+          i18n.applyAll();
+          this.syncLangToggles(lang);
+          Storage.updateSettings({ lang });
+          this.haptic('tap');
+        });
+      });
+    });
+
+    // Profile toggles
+    document.querySelectorAll('.profile-toggle').forEach(toggle => {
+      toggle.querySelectorAll('.profile-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const profile = btn.dataset.profile;
+          Storage.updateSettings({ profile });
+          this.syncProfileToggles(profile);
+          this.haptic('tap');
+          this.loadChatHistory(); // Re-render chat con el nuevo perfil
+          this.renderHistory();
+        });
       });
     });
 
@@ -239,50 +307,39 @@ class ThaiChatApp {
     if (welcome) welcome.remove();
 
     // Detectar idioma
-    const isThai = /[\u0E00-\u0E7F]/.test(input);
-    const direction = isThai ? 'th-es' : 'es-th';
+    const isThaiInput = /[\u0E00-\u0E7F]/.test(input);
+    const direction = isThaiInput ? 'th-es' : 'es-th';
 
-    // Burbuja del usuario
-    this.addUserBubble(input, isThai);
-
-    // Indicador "traduciendo..."
-    const typingEl = this.addTypingIndicator();
+    // Burbuja temporal (cargando)
+    const bubbleEl = this.addDualBubble(input, null, isThaiInput, null, true);
 
     this.isTranslating = true;
     this.setSendBtnState(true);
 
     try {
       const result = await this.translator.translate(input);
+      result.inputText = input; // guardamos para lazy explain
 
-      // Quitar typing indicator
-      typingEl.remove();
-
-      // Guardar en historial
+      // Guardar en historial (solo traducción, sin detalles)
       const entry = {
         input,
         direction: result.direction,
-        translation: result.translation,
-        romanization: result.romanization || '',
-        literal: result.literal || '',
-        tone_note: result.tone_note || '',
-        explanation: result.explanation || '',
-        key_words: result.key_words || '',
-        emotional_tone: result.emotional_tone || ''
+        translation: result.translation
       };
       Storage.addToHistory(entry);
       const history = Storage.getHistory();
       const savedEntry = history[0];
 
-      // Burbuja de traducción
-      this.addBotBubble(result, savedEntry);
-      this.renderHistory();
+      // Actualizar burbuja con la traducción real
+      this.updateDualBubble(bubbleEl, result.translation, savedEntry);
+      this.renderHistory(); // Re-render everything smoothly
 
       // Vibración al recibir traducción
       this.haptic('receive');
 
     } catch (error) {
       typingEl.remove();
-      this.addErrorBubble(error.message);
+      this.addErrorBubble(error.message, input);
       this.haptic('error');
     } finally {
       this.isTranslating = false;
@@ -290,129 +347,213 @@ class ThaiChatApp {
     }
   }
 
-  // ────────── BURBUJAS ──────────
+  // ────────── BURBUJAS DUAL CHAT ──────────
 
-  addUserBubble(text, isThai = false) {
+  addDualBubble(input, translation, isThaiInput, savedEntry, isLoading = false) {
+    const profile = Storage.getSettings().profile || 'me';
+    const isMe = (profile === 'me' && !isThaiInput) || (profile === 'her' && isThaiInput);
+
     const msgs = document.getElementById('chat-messages');
     const now = new Date();
-    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const time = savedEntry ? this.formatBubbleTime(savedEntry.timestamp) : now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
 
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble-group bubble-group--user';
-    bubble.innerHTML = `
-      <div class="chat-bubble chat-bubble--user">
-        <div class="chat-bubble__text${isThai ? ' thai-text' : ''}">${this.esc(text)}</div>
-        <div class="chat-bubble__time">${time}</div>
-      </div>
-    `;
-    msgs.appendChild(bubble);
-    this.scrollToBottom();
-  }
-
-  addBotBubble(result, savedEntry) {
-    const msgs = document.getElementById('chat-messages');
-    const now = new Date();
-    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-    const isThai = result.direction === 'es-th';
-    const flag = isThai ? '🇹🇭 TH' : '🇪🇸 ES';
-
-    // Construir detalles según dirección
-    let detailsHTML = '';
-    if (isThai) {
-      // ES → TH: mostrar pronunciación, literal, nota
-      if (result.romanization) detailsHTML += `<div class="chat-detail-row roman"><strong>📖 Pronunciación</strong>${this.esc(result.romanization)}</div>`;
-      if (result.literal)      detailsHTML += `<div class="chat-detail-row"><strong>📝 Literal</strong>${this.esc(result.literal)}</div>`;
-      if (result.tone_note)    detailsHTML += `<div class="chat-detail-row"><strong>💡 Nota</strong>${this.esc(result.tone_note)}</div>`;
-    } else {
-      // TH → ES: mostrar explicación, tono emocional, palabras clave
-      if (result.explanation)   detailsHTML += `<div class="chat-detail-row"><strong>💬 Explicación</strong>${this.esc(result.explanation)}</div>`;
-      if (result.emotional_tone) detailsHTML += `<div class="chat-detail-row"><strong>💕 Tono</strong>${this.esc(result.emotional_tone)}</div>`;
-      if (result.key_words)     detailsHTML += `<div class="chat-detail-row"><strong>📚 Palabras clave</strong>${this.esc(result.key_words)}</div>`;
-    }
-
-    const hasDetails = detailsHTML.length > 0;
+    const sideClass = isMe ? 'bubble-group--user' : 'bubble-group--bot';
+    const bubbleClass = isMe ? 'chat-bubble--user' : 'chat-bubble--bot';
     const isFav = savedEntry ? Storage.isFavorite(savedEntry.id) : false;
 
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble-group bubble-group--bot';
-    bubble.innerHTML = `
-      <div class="chat-bubble chat-bubble--bot" data-id="${savedEntry?.id || ''}">
-        <div class="chat-bubble__lang">${flag}</div>
-        <div class="chat-bubble__text${isThai ? ' thai-text' : ''}">${this.esc(result.translation)}</div>
-        ${hasDetails ? `
-        <div class="chat-bubble__details">
-          <div class="chat-bubble__divider"></div>
-          ${detailsHTML}
-          <div class="chat-bubble__actions">
-            <button class="chat-action-btn btn-copy-bubble" data-text="${this.escAttr(result.translation)}">📋 Copiar</button>
-            <button class="chat-action-btn btn-fav-bubble ${isFav ? 'fav-active' : ''}" data-id="${savedEntry?.id || ''}">${isFav ? '⭐' : '☆'} Favorito</button>
-          </div>
-        </div>` : ''}
-        <div class="chat-bubble__time">${time}${hasDetails ? ' • toca para ver más' : ''}</div>
+    const bubbleGroup = document.createElement('div');
+    bubbleGroup.className = `bubble-group ${sideClass}`;
+
+    let avatarHTML = '';
+    if (!isMe) {
+      avatarHTML = `<div class="chat-bubble-avatar">${profile === 'me' ? '👱‍♀️' : '👦'}</div>`;
+    }
+
+    bubbleGroup.innerHTML = `
+      ${avatarHTML}
+      <div class="chat-bubble ${bubbleClass}" data-id="${savedEntry?.id || ''}" title="${i18n.t('toast.copied')}">
+        <div class="chat-bubble__text original-text${isThaiInput ? ' thai-text' : ''}">${this.esc(input)}</div>
+        <div class="chat-bubble__divider"></div>
+        <div class="chat-bubble__text translated-text${(!isThaiInput && !isLoading) ? ' thai-text' : ''}">${isLoading ? '<span class="typing-text">...</span>' : this.esc(translation)}</div>
+        <div class="chat-bubble__meta" style="${isLoading ? 'display:none;' : ''}">
+          <span class="chat-bubble__time">${time}</span>
+          <button class="bubble-expand-btn" aria-label="Ver explicación">&#9660;</button>
+        </div>
+        <div class="chat-bubble__explain" style="display:none;"></div>
+        <div class="chat-bubble__actions" style="display:none;">
+          <button class="chat-action-btn btn-fav-bubble ${isFav ? 'fav-active' : ''}" data-id="${savedEntry?.id || ''}">${isFav ? '⭐' : '☆'} ${i18n.t('btn.favorite')}</button>
+        </div>
       </div>
     `;
 
-    // Expandir al tocar
-    const bubbleEl = bubble.querySelector('.chat-bubble');
-    if (hasDetails) {
-      bubbleEl.addEventListener('click', (e) => {
-        if (e.target.closest('.chat-action-btn')) return;
-        bubbleEl.classList.toggle('expanded');
-        const timeEl = bubbleEl.querySelector('.chat-bubble__time');
-        if (bubbleEl.classList.contains('expanded')) {
-          timeEl.textContent = time;
-        } else {
-          timeEl.textContent = time + ' • toca para ver más';
-        }
+    const bubbleEl = bubbleGroup.querySelector('.chat-bubble');
+    
+    // Si no está cargando, configuramos eventos
+    if (!isLoading) {
+      this.attachBubbleEvents(bubbleEl, {
+        input, translation, direction: isThaiInput ? 'th-es' : 'es-th', savedEntry
       });
     }
 
-    // Copiar desde burbuja
-    const copyBtn = bubble.querySelector('.btn-copy-bubble');
-    if (copyBtn) {
-      copyBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.copyText(result.translation);
-        copyBtn.textContent = '✅ Copiado';
+    msgs.appendChild(bubbleGroup);
+    this.scrollToBottom();
+    
+    return bubbleGroup;
+  }
+
+  updateDualBubble(bubbleGroup, translation, savedEntry) {
+    const bubbleEl = bubbleGroup.querySelector('.chat-bubble');
+    const translatedText = bubbleEl.querySelector('.translated-text');
+    const metaEl = bubbleEl.querySelector('.chat-bubble__meta');
+    
+    const isThaiTranslation = !bubbleEl.querySelector('.original-text').classList.contains('thai-text');
+    if (isThaiTranslation) {
+      translatedText.classList.add('thai-text');
+    }
+    
+    translatedText.innerHTML = this.esc(translation);
+    metaEl.style.display = '';
+
+    // Guardar id
+    if (savedEntry) {
+      bubbleEl.dataset.id = savedEntry.id;
+      bubbleEl.querySelector('.btn-fav-bubble').dataset.id = savedEntry.id;
+    }
+
+    // Configurar eventos
+    const input = bubbleEl.querySelector('.original-text').textContent;
+    this.attachBubbleEvents(bubbleEl, {
+      input, translation, direction: isThaiTranslation ? 'es-th' : 'th-es', savedEntry
+    });
+  }
+
+  attachBubbleEvents(bubbleEl, result) {
+    const expandBtn = bubbleEl.querySelector('.bubble-expand-btn');
+    const explainEl = bubbleEl.querySelector('.chat-bubble__explain');
+    const actionsEl = bubbleEl.querySelector('.chat-bubble__actions');
+    const favBtn = bubbleEl.querySelector('.btn-fav-bubble');
+
+    // Toque = copiar original + traducción
+    bubbleEl.addEventListener('click', (e) => {
+      if (e.target.closest('.bubble-expand-btn') || e.target.closest('.btn-fav-bubble')) return;
+      const copyText = `${result.input}\n---\n${result.translation}`;
+      this.copyText(copyText);
+      this.flashBubble(bubbleEl);
+      this.haptic('tap');
+    });
+
+    let explanationLoaded = false;
+    expandBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const isExpanded = bubbleEl.classList.contains('expanded');
+
+      if (isExpanded) {
+        bubbleEl.classList.remove('expanded');
+        explainEl.style.display = 'none';
+        actionsEl.style.display = 'none';
+        expandBtn.innerHTML = '&#9660;';
         this.haptic('tap');
-        setTimeout(() => copyBtn.textContent = '📋 Copiar', 1500);
-      });
-    }
+        return;
+      }
 
-    // Favorito desde burbuja
-    const favBtn = bubble.querySelector('.btn-fav-bubble');
-    if (favBtn && savedEntry) {
+      bubbleEl.classList.add('expanded');
+      expandBtn.innerHTML = '&#9650;';
+      actionsEl.style.display = '';
+      this.haptic('tap');
+
+      if (explanationLoaded) {
+        explainEl.style.display = '';
+        setTimeout(() => bubbleEl.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+        return;
+      }
+
+      explainEl.style.display = '';
+      explainEl.innerHTML = `<div class="explain-loading">🔄 ${i18n.t('explain.loading')}</div>`;
+      setTimeout(() => bubbleEl.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+
+      try {
+        const detail = await this.translator.explain(result.input, result.translation, result.direction);
+        explanationLoaded = true;
+        
+        const isThai = result.direction === 'es-th';
+        let html = '<div class="chat-bubble__divider"></div>';
+        if (isThai) {
+          if (detail.romanization) html += `<div class="chat-detail-row roman"><strong>${i18n.t('explain.pronun')}</strong>${this.esc(detail.romanization)}</div>`;
+          if (detail.literal)      html += `<div class="chat-detail-row"><strong>${i18n.t('explain.literal')}</strong>${this.esc(detail.literal)}</div>`;
+          if (detail.tone_note)    html += `<div class="chat-detail-row"><strong>${i18n.t('explain.note')}</strong>${this.esc(detail.tone_note)}</div>`;
+        } else {
+          if (detail.explanation)    html += `<div class="chat-detail-row"><strong>${i18n.t('explain.explanation')}</strong>${this.esc(detail.explanation)}</div>`;
+          if (detail.emotional_tone) html += `<div class="chat-detail-row"><strong>${i18n.t('explain.tone')}</strong>${this.esc(detail.emotional_tone)}</div>`;
+          if (detail.key_words)      html += `<div class="chat-detail-row"><strong>${i18n.t('explain.keywords')}</strong>${this.esc(detail.key_words)}</div>`;
+        }
+        explainEl.innerHTML = html;
+
+      } catch (err) {
+        explainEl.innerHTML = `
+          <div class="explain-error">⚠️ ${this.esc(err.message)}</div>
+          <button class="chat-retry-btn explain-retry">🔄 ${i18n.t('explain.retry')}</button>
+        `;
+        explainEl.querySelector('.explain-retry')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          explanationLoaded = false;
+          expandBtn.click();
+        });
+      }
+    });
+
+    if (favBtn && result.savedEntry) {
       favBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = parseInt(favBtn.dataset.id);
         if (Storage.isFavorite(id)) {
           Storage.removeFavorite(id);
-          favBtn.textContent = '☆ Favorito';
+          favBtn.textContent = `☆ ${i18n.t('btn.favorite')}`;
           favBtn.classList.remove('fav-active');
-          this.showToast('Eliminado de favoritos');
+          this.showToast(i18n.t('toast.removed-fav'));
           this.haptic('tap');
         } else {
-          Storage.addFavorite(savedEntry);
-          favBtn.textContent = '⭐ Favorito';
+          Storage.addFavorite(result.savedEntry);
+          favBtn.textContent = `⭐ ${i18n.t('btn.favorited')}`;
           favBtn.classList.add('fav-active');
-          this.showToast('⭐ Guardado en favoritos');
+          this.showToast(i18n.t('toast.saved-fav'));
           this.haptic('success');
         }
         this.renderFavorites();
       });
     }
-
-    msgs.appendChild(bubble);
-    this.scrollToBottom();
   }
 
-  addErrorBubble(message) {
+  addErrorBubble(message, originalText = '') {
     const msgs = document.getElementById('chat-messages');
     const el = document.createElement('div');
     el.className = 'bubble-group bubble-group--bot';
-    el.innerHTML = `<div class="chat-bubble chat-bubble--bot" style="border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);"><div class="chat-bubble__text" style="color:#fca5a5;font-size:13px;">⚠️ ${this.esc(message)}</div></div>`;
+    el.innerHTML = `
+      <div class="chat-bubble chat-bubble--bot chat-bubble--error">
+        <div class="chat-bubble__text">⚠️ ${this.esc(message)}</div>
+        ${originalText ? `<button class="chat-retry-btn" data-text="${this.escAttr(originalText)}">🔄 Reintentar</button>` : ''}
+      </div>
+    `;
+
+    // Botón reintentar
+    const retryBtn = el.querySelector('.chat-retry-btn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => {
+        el.remove(); // Quitar burbuja de error
+        const inputEl = document.getElementById('chat-input');
+        inputEl.value = retryBtn.dataset.text;
+        this.haptic('tap');
+        setTimeout(() => this.handleSend(), 80);
+      });
+    }
+
     msgs.appendChild(el);
     this.scrollToBottom();
+  }
+
+  // Flash visual al copiar
+  flashBubble(el) {
+    el.classList.add('bubble-copied');
+    setTimeout(() => el.classList.remove('bubble-copied'), 600);
   }
 
   addTypingIndicator() {
@@ -433,45 +574,35 @@ class ThaiChatApp {
   // ────────── CARGAR HISTORIAL EN CHAT ──────────
   loadChatHistory() {
     const history = Storage.getHistory();
-    if (history.length === 0) return;
+    const msgs = document.getElementById('chat-messages');
 
-    // Quitar welcome screen
-    const welcome = document.getElementById('chat-welcome');
-    if (welcome) welcome.remove();
+    // Limpiar el contenedor excepto si está vacío (mantener welcome)
+    if (history.length === 0) return;
+    msgs.innerHTML = '';
 
     // Mostrar últimas 20 traducciones en orden cronológico
     const recent = [...history].reverse().slice(-20);
 
     // Separador "Conversación anterior"
-    const msgs = document.getElementById('chat-messages');
     const divider = document.createElement('div');
     divider.className = 'chat-date-divider';
-    divider.textContent = 'Conversación anterior';
+    divider.textContent = i18n.t('chat.prev') || 'Conversación anterior';
     msgs.appendChild(divider);
 
     recent.forEach(entry => {
-      const isThai = /[\u0E00-\u0E7F]/.test(entry.input);
-
-      // Burbuja usuario (sin animación para no saturar)
-      const userGroup = document.createElement('div');
-      userGroup.className = 'bubble-group bubble-group--user';
-      const entryTime = this.formatBubbleTime(entry.timestamp);
-      userGroup.innerHTML = `<div class="chat-bubble chat-bubble--user" style="animation:none"><div class="chat-bubble__text${isThai ? ' thai-text' : ''}">${this.esc(entry.input)}</div><div class="chat-bubble__time">${entryTime}</div></div>`;
-      msgs.appendChild(userGroup);
-
-      // Burbuja bot simplificada del historial
-      const botGroup = document.createElement('div');
-      botGroup.className = 'bubble-group bubble-group--bot';
-      const isThaiResult = entry.direction === 'es-th';
-      const flag = isThaiResult ? '🇹🇭 TH' : '🇪🇸 ES';
-      botGroup.innerHTML = `<div class="chat-bubble chat-bubble--bot" style="animation:none"><div class="chat-bubble__lang">${flag}</div><div class="chat-bubble__text${isThaiResult ? ' thai-text' : ''}">${this.esc(entry.translation)}</div><div class="chat-bubble__time">${entryTime}</div></div>`;
-      msgs.appendChild(botGroup);
+      // detect if it's Thai input by checking the direction
+      // If direction is th-es, it means input was Thai.
+      // If direction is es-th, input was Spanish.
+      // Fallback: check chars if direction is missing for some old entries.
+      const isThaiInput = entry.direction ? entry.direction === 'th-es' : /[\u0E00-\u0E7F]/.test(entry.input);
+      
+      this.addDualBubble(entry.input, entry.translation, isThaiInput, entry, false);
     });
 
     // Separador "Ahora"
     const nowDivider = document.createElement('div');
     nowDivider.className = 'chat-date-divider';
-    nowDivider.textContent = 'Ahora';
+    nowDivider.textContent = i18n.t('chat.now') || 'Ahora';
     msgs.appendChild(nowDivider);
 
     this.scrollToBottom();
@@ -675,15 +806,46 @@ class ThaiChatApp {
     }, 2500);
   }
 
+  // ────────── ZOOM ──────────
+  applyZoom(level) {
+    this._zoomLevel = Math.min(150, Math.max(60, level));
+    document.getElementById('app').style.zoom = `${this._zoomLevel}%`;
+    const display = document.getElementById('zoom-level-display');
+    if (display) display.textContent = `${this._zoomLevel}%`;
+  }
+
+  changeZoom(delta) {
+    const current = this._zoomLevel || 100;
+    const next = Math.min(150, Math.max(60, current + delta));
+    this.applyZoom(next);
+    Storage.updateSettings({ zoom: next });
+    this.haptic('tap');
+  }
+
+  // ────────── LANG SYNC ──────────
+  syncLangToggles(lang) {
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+      btn.classList.toggle('lang-btn--active', btn.dataset.lang === lang);
+    });
+  }
+
+  syncProfileToggles(profile) {
+    document.querySelectorAll('.profile-btn').forEach(btn => {
+      btn.classList.toggle('profile-btn--active', btn.dataset.profile === profile);
+    });
+  }
+
   // ────────── HELPERS ──────────
   esc(text) {
+    if (text === null || text === undefined) return '';
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = String(text);
     return div.innerHTML;
   }
 
   escAttr(text) {
-    return text
+    if (text === null || text === undefined) return '';
+    return String(text)
       .replace(/&/g, '&amp;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;')

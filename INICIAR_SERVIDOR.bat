@@ -18,7 +18,7 @@ echo  ========================================
 echo.
 
 :: Inicia el servidor en segundo plano
-start "" cmd /k "cd /d "%~dp0" && npx -y serve . -l 3000 --no-cache"
+start "" cmd /k "cd /d "%~dp0" && npx serve . -l 3000"
 
 :: Espera 2 segundos a que el servidor arranque
 timeout /t 2 /nobreak >nul

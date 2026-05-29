@@ -25,7 +25,7 @@ echo    INICIANDO SERVIDOR LIMPIO
 echo  ==============================
 echo.
 
-start "" cmd /k "cd /d "%~dp0" && npx serve . -l 3000 --no-cache"
+start "" cmd /k "cd /d "%~dp0" && npx serve . -l 3000"
 timeout /t 2 /nobreak >nul
 start "" http://localhost:3000
 

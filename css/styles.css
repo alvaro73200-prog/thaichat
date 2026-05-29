@@ -191,20 +191,122 @@ textarea {
   letter-spacing: -0.3px;
 }
 
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .header__settings-btn {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--r-full);
-  font-size: 26px;
+  font-size: 22px;
   transition: background 0.2s;
 }
 
 .header__settings-btn:hover,
 .header__settings-btn:active {
   background: var(--bg-hover);
+}
+
+/* ── Botones zoom en header ── */
+.zoom-btn {
+  height: 34px;
+  padding: 0 9px;
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.zoom-btn:hover, .zoom-btn:active {
+  background: rgba(255,255,255,0.12);
+  color: var(--text-primary);
+  transform: scale(1.06);
+}
+
+/* ── Toggle de idioma y perfil ── */
+.lang-toggle, .profile-toggle {
+  display: flex;
+  gap: 6px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  padding: 4px;
+}
+
+.lang-btn, .profile-btn {
+  flex: 1;
+  padding: 9px 14px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.2s var(--ease-out);
+  text-align: center;
+}
+
+.lang-btn--active, .profile-btn--active {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 0 2px 10px rgba(232,93,117,0.3);
+}
+
+/* ── Controles de zoom en settings ── */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-ctrl-btn {
+  width: 40px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--border-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.15s;
+}
+
+.zoom-ctrl-btn:hover {
+  background: rgba(255,255,255,0.14);
+  transform: scale(1.06);
+}
+
+.zoom-level {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.zoom-reset-btn {
+  padding: 0 12px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: rgba(232,93,117,0.1);
+  border: 1px solid rgba(232,93,117,0.25);
+  color: var(--accent-coral);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.zoom-reset-btn:hover {
+  background: rgba(232,93,117,0.2);
 }
 
 /* ==================== MAIN CONTENT ==================== */
@@ -1236,16 +1338,28 @@ button:focus:not(:focus-visible) {
 .bubble-group--bot {
   align-items: flex-start;
 }
+  flex-direction: row;
+  gap: 8px;
+}
 
-/* ── Burbuja base ── */
+.chat-bubble-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 4px;
+}
+
 .chat-bubble {
-  max-width: 88%;
-  min-width: 60px;
-  border-radius: 22px;
-  padding: 14px 18px;
   position: relative;
-  cursor: pointer;
-  animation: bubbleIn 0.3s var(--ease-spring);
+  padding: 12px 14px;
+  border-radius: 18px;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s var(--ease-out);
 }
@@ -1255,93 +1369,96 @@ button:focus:not(:focus-visible) {
 }
 
 @keyframes bubbleIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.94);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(12px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* ── Burbuja del USUARIO (derecha, coral) ── */
+/* ── Burbuja Derecha (Yo / Coral Original) ── */
 .chat-bubble--user {
   background: var(--gradient-primary);
   color: white;
-  border-bottom-right-radius: 5px;
+  border-bottom-right-radius: 4px;
   box-shadow: 0 2px 12px rgba(232, 93, 117, 0.25);
 }
 
-/* ── Burbuja de TRADUCCIÓN (izquierda, gris) ── */
-.chat-bubble--bot {
-  background: var(--bg-card-solid);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  border-bottom-left-radius: 5px;
-  box-shadow: var(--shadow-sm);
+.chat-bubble--user .chat-bubble__divider {
+  background: rgba(255,255,255,0.25);
 }
 
-/* ── Texto principal de la burbuja ── */
+.chat-bubble--user .chat-bubble__time {
+  color: rgba(255,255,255,0.7);
+}
+
+.chat-bubble--user .bubble-expand-btn {
+  background: rgba(255,255,255,0.15);
+  border-color: transparent;
+  color: white;
+}
+
+/* ── Burbuja Izquierda (Ella / Gris) ── */
+.chat-bubble--bot {
+  background: #2a2c36;
+  border: 1px solid rgba(255,255,255,0.05);
+  color: #fff;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.chat-bubble--bot .chat-bubble__divider {
+  background: rgba(255,255,255,0.1);
+}
+
+.chat-bubble--bot .chat-bubble__time {
+  color: var(--text-muted);
+}
+
+/* ── Textos ── */
 .chat-bubble__text {
-  font-size: 18px;
-  line-height: 1.5;
+  font-size: 16px;
+  line-height: 1.4;
   word-break: break-word;
 }
 
 .chat-bubble__text.thai-text {
   font-family: var(--font-thai);
-  font-size: 22px;
-  line-height: 1.8;
+  font-size: 20px;
+  line-height: 1.6;
 }
 
-/* ── Hora ── */
+/* ── Divisor ── */
+.chat-bubble__divider {
+  height: 1px;
+  margin: 10px 0;
+}
+
+/* ── Meta (Tiempo y Botón Expandir) ── */
+.chat-bubble__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
 .chat-bubble__time {
-  font-size: 12px;
-  opacity: 0.65;
-  margin-top: 5px;
-  text-align: right;
+  font-size: 11px;
   line-height: 1;
 }
 
-.chat-bubble--bot .chat-bubble__time {
-  text-align: left;
-  color: var(--text-muted);
-}
-
-/* ── Bandera de idioma (en burbuja bot) ── */
-.chat-bubble__lang {
-  font-size: 14px;
-  margin-bottom: 7px;
-  opacity: 0.7;
-}
-
 /* ── Detalles expandibles ── */
-.chat-bubble__details {
+.chat-bubble__explain {
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.35s var(--ease-out), opacity 0.25s;
   opacity: 0;
 }
 
-.chat-bubble.expanded .chat-bubble__details {
+.chat-bubble.expanded .chat-bubble__explain {
   max-height: 600px;
   opacity: 1;
 }
 
-.chat-bubble__divider {
-  height: 1px;
-  background: rgba(255,255,255,0.1);
-  margin: 12px 0;
-}
-
-.chat-bubble--bot .chat-bubble__divider {
-  background: var(--border-subtle);
-}
-
 .chat-detail-row {
-  font-size: 15px;
-  line-height: 1.5;
   margin-top: 7px;
 }
 
@@ -1495,6 +1612,154 @@ button:focus:not(:focus-visible) {
   transform: none;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* ── Botón pegar en input bar ── */
+.chat-paste-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: rgba(232, 93, 117, 0.1);
+  border: 1px solid rgba(232, 93, 117, 0.25);
+  color: var(--accent-coral);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s var(--ease-out);
+  line-height: 1;
+}
+
+.chat-paste-btn:hover,
+.chat-paste-btn:active {
+  background: rgba(232, 93, 117, 0.22);
+  transform: scale(1.08);
+}
+
+/* ── Botón ℹ️ dentro de la burbuja ── */
+.bubble-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  font-size: 13px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-muted);
+  vertical-align: middle;
+  transition: background 0.15s;
+  line-height: 1.4;
+}
+
+.bubble-info-btn:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* ── Flash visual al copiar ── */
+@keyframes bubbleCopied {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.5; background: rgba(232,93,117,0.25); }
+  100% { opacity: 1; }
+}
+
+.bubble-copied {
+  animation: bubbleCopied 0.5s ease;
+}
+
+/* ── Burbuja de error ── */
+.chat-bubble--error {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+.chat-bubble--error .chat-bubble__text {
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+/* ── Botón reintentar ── */
+.chat-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 7px 14px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--r-md);
+  color: #fca5a5;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s var(--ease-out);
+}
+
+.chat-retry-btn:hover,
+.chat-retry-btn:active {
+  background: rgba(239, 68, 68, 0.28);
+  transform: scale(1.03);
+}
+
+/* ── Botón expandir ▼ dentro de la burbuja ── */
+.bubble-expand-btn {
+  margin-left: auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-muted);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.bubble-expand-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.chat-bubble__lang {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* ── Zona de explicación lazy ── */
+.chat-bubble__explain {
+  margin-top: 4px;
+}
+
+.explain-loading {
+  padding: 10px 0 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+.explain-error {
+  padding: 8px 0 4px;
+  font-size: 13px;
+  color: #fca5a5;
+}
+
+/* ── Lang toggle en onboarding ── */
+.onboarding-screen .lang-toggle {
+  margin: 12px auto 8px;
+  width: fit-content;
 }
 
 /* ==================== ONBOARDING SCREEN ==================== */
