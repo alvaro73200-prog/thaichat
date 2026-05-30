@@ -4,6 +4,7 @@ import TranslationService from './api.js';
 import * as Storage from './storage.js';
 import { registerServiceWorker } from './pwa.js';
 import * as i18n from './i18n.js';
+import * as FirebaseChat from './firebase-chat.js';
 
 // ==================== APP CLASS ====================
 class ThaiChatApp {
@@ -14,28 +15,43 @@ class ThaiChatApp {
     this.lastResult = null;
     this.cooldownTimer = null;
     this.cooldownSeconds = 0;
-    this.COOLDOWN_MS = 2000; // 2s anti doble-clic (free tier permite 30 RPM)
+    this.COOLDOWN_MS = 4000;      // 4s cooldown normal entre mensajes
+    this.COOLDOWN_429_MS = 20000; // 20s cooldown cuando hay rate limit
     this.isOffline = !navigator.onLine;
   }
 
   // ────────── INIT ──────────
-  init() {
+  async init() {
     try {
       console.log('[ThaiChat] Iniciando app...');
 
-      // Cargar idioma guardado
+      // 1. Magic Link Setup
+      const hash = window.location.hash;
+      if (hash.startsWith('#setup=')) {
+        const base64Str = hash.replace('#setup=', '');
+        try {
+          const config = JSON.parse(atob(base64Str));
+          if (config.firebase) Storage.setFirebaseConfig(config.firebase);
+          if (config.apiKey) Storage.setApiKey(config.apiKey);
+          history.replaceState(null, null, ' '); // Limpiar URL
+          this.showToast('✅ Configuración mágica aplicada');
+        } catch (e) {
+          console.error("Link de configuración inválido", e);
+        }
+      }
+
+      // Cargar idioma guardado (el idioma lo define el usuario más adelante, pero cargamos el fallback)
       const savedLang = Storage.getSettings().lang || 'es';
       i18n.setLang(savedLang);
       i18n.applyAll();
       this.syncLangToggles(savedLang);
 
-      // Cargar perfil guardado
-      const savedProfile = Storage.getSettings().profile || 'me';
-      this.syncProfileToggles(savedProfile);
-
       // Cargar zoom guardado
       const savedZoom = Storage.getSettings().zoom || 100;
       this.applyZoom(savedZoom);
+
+      // Bloqueos UI de seguridad
+      this.setupSecurityLocks();
 
       // Si no hay API key → mostrar pantalla de onboarding
       const apiKey = Storage.getApiKey();
@@ -53,6 +69,16 @@ class ThaiChatApp {
       this.translator.model = savedModel;
       console.log('[ThaiChat] Modelo:', savedModel);
 
+      // Callback cuando la API rota automáticamente de modelo por 429
+      this.translator.onModelSwitch = (newModel, prevModel) => {
+        console.log(`[ThaiChat] Auto-switch: ${prevModel} → ${newModel} (429)`);
+        Storage.updateSettings({ model: newModel });
+        const modelShort = newModel.replace('gemini-', '').replace(/-/g, ' ');
+        this.showToast(`${i18n.t('toast.model-switch')} ${modelShort}`);
+        // Aplicar cooldown de 429 en la barra
+        this._pendingCooldown429 = true;
+      };
+
       this.setupEventListeners();
       this.renderHistory();
       this.renderFavorites();
@@ -62,10 +88,107 @@ class ThaiChatApp {
       // Registrar Service Worker para PWA (offline)
       registerServiceWorker();
 
+      // Iniciar Chat en vivo
+      this.initLiveChat();
+
+      // Setup Modo Admin
+      this.setupAdminMode();
+
       console.log('[ThaiChat] App inicializada correctamente');
     } catch (error) {
       console.error('[ThaiChat] Error al inicializar:', error);
     }
+  }
+
+  // ────────── SECURITY LOCKS (PIN & USER) ──────────
+  setupSecurityLocks() {
+    const pin = Storage.getPin();
+    const chatUser = Storage.getChatUser();
+
+    if (!pin) {
+      this.showPinScreen();
+    } else if (!chatUser) {
+      this.showUserSelectScreen();
+    }
+  }
+
+  showPinScreen() {
+    const screen = document.getElementById('pin-screen');
+    const dots = document.querySelectorAll('#pin-dots span');
+    const container = document.getElementById('pin-dots');
+    if (!screen) return;
+    
+    screen.style.display = 'flex';
+    let currentPin = '';
+
+    document.querySelectorAll('.pin-btn:not(.pin-btn-dummy)').forEach(btn => {
+      // Remover event listeners anteriores clonando
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      
+      newBtn.addEventListener('click', () => {
+        if (newBtn.classList.contains('pin-btn-clear')) {
+          currentPin = currentPin.slice(0, -1);
+        } else {
+          if (currentPin.length < 4) currentPin += newBtn.textContent;
+        }
+
+        // Update dots
+        dots.forEach((dot, idx) => {
+          dot.classList.toggle('filled', idx < currentPin.length);
+        });
+
+        // Check PIN
+        if (currentPin.length === 4) {
+          if (currentPin === '7878') {
+            Storage.setPin('7878');
+            screen.style.display = 'none';
+            if (!Storage.getChatUser()) {
+              this.showUserSelectScreen();
+            }
+          } else {
+            container.classList.add('error');
+            this.haptic('error');
+            setTimeout(() => {
+              container.classList.remove('error');
+              currentPin = '';
+              dots.forEach(d => d.classList.remove('filled'));
+            }, 400);
+          }
+        }
+      });
+    });
+  }
+
+  showUserSelectScreen() {
+    const screen = document.getElementById('user-select-screen');
+    if (!screen) return;
+    screen.style.display = 'flex';
+
+    const input = document.getElementById('user-name-input');
+    
+    ['me', 'her'].forEach(user => {
+      const btn = document.getElementById(`user-card-${user}`);
+      if (!btn) return;
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      
+      newBtn.addEventListener('click', () => {
+        const name = input.value.trim() || (user === 'me' ? 'Él' : 'Ella');
+        Storage.setChatUser(user);
+        Storage.setUserName(name);
+        Storage.updateSettings({ profile: user, lang: user === 'me' ? 'es' : 'th' });
+        
+        // Aplicar idioma inmediatamente
+        i18n.setLang(user === 'me' ? 'es' : 'th');
+        i18n.applyAll();
+        
+        screen.style.display = 'none';
+        
+        // Recargar para aplicar configuración
+        window.location.reload();
+      });
+    });
   }
 
   // ────────── EVENT LISTENERS ──────────
@@ -338,12 +461,25 @@ class ThaiChatApp {
       this.haptic('receive');
 
     } catch (error) {
-      typingEl.remove();
+      // Remover la burbuja de carga que quedó en espera
+      if (bubbleEl && bubbleEl.parentNode) bubbleEl.remove();
+
+      if (error.message === 'RATE_LIMIT_ALL') {
+        this.showToast(i18n.t('toast.all-busy'));
+        this.haptic('error');
+        this.isTranslating = false;
+        this.startCooldown(this.COOLDOWN_429_MS, true);
+        return;
+      }
       this.addErrorBubble(error.message, input);
       this.haptic('error');
     } finally {
       this.isTranslating = false;
-      this.startCooldown();
+      // Si hubo un auto-switch de modelo, aplicamos cooldown largo
+      const cooldownMs = this._pendingCooldown429 ? this.COOLDOWN_429_MS : this.COOLDOWN_MS;
+      const isUrgent = this._pendingCooldown429;
+      this._pendingCooldown429 = false;
+      this.startCooldown(cooldownMs, isUrgent);
     }
   }
 
@@ -433,11 +569,10 @@ class ThaiChatApp {
     const actionsEl = bubbleEl.querySelector('.chat-bubble__actions');
     const favBtn = bubbleEl.querySelector('.btn-fav-bubble');
 
-    // Toque = copiar original + traducción
+    // Toque = copiar solo la traducción (para pegar directo en WhatsApp/LINE)
     bubbleEl.addEventListener('click', (e) => {
       if (e.target.closest('.bubble-expand-btn') || e.target.closest('.btn-fav-bubble')) return;
-      const copyText = `${result.input}\n---\n${result.translation}`;
-      this.copyText(copyText);
+      this.copyText(result.translation);
       this.flashBubble(bubbleEl);
       this.haptic('tap');
     });
@@ -620,18 +755,58 @@ class ThaiChatApp {
   }
 
   // ────────── COOLDOWN ──────────
-  startCooldown() {
+  startCooldown(durationMs, urgent = false) {
+    const ms = durationMs ?? this.COOLDOWN_MS;
     const btn = document.getElementById('chat-send-btn');
-    this.cooldownSeconds = Math.ceil(this.COOLDOWN_MS / 1000);
+    const bar = document.getElementById('rate-limit-bar');
+    const countdown = document.getElementById('rate-limit-countdown');
+    const fill = document.getElementById('rate-limit-fill');
+    const textEl = document.getElementById('rate-limit-text');
+
+    this.cooldownSeconds = Math.ceil(ms / 1000);
+    const totalSeconds = this.cooldownSeconds;
+
     clearInterval(this.cooldownTimer);
     btn.disabled = true;
 
+    // Mostrar barra
+    if (bar) {
+      bar.classList.add('visible');
+      bar.classList.toggle('urgent', urgent);
+      if (fill) {
+        // Sin transición en el inicio para que empiece al 100%
+        fill.style.transition = 'none';
+        fill.style.width = '100%';
+        // Pequeño delay para activar la transición de reducción
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            fill.style.transition = `width ${ms}ms linear`;
+            fill.style.width = '0%';
+          });
+        });
+      }
+      if (countdown) countdown.textContent = this.cooldownSeconds;
+      if (textEl) {
+        const waitLabel = urgent
+          ? i18n.t('ratelimit.busy')
+          : i18n.t('ratelimit.wait');
+        const sLabel = i18n.t('ratelimit.s');
+        textEl.innerHTML = `${waitLabel} <span id="rate-limit-countdown">${this.cooldownSeconds}</span>${sLabel}`;
+      }
+    }
+
     this.cooldownTimer = setInterval(() => {
       this.cooldownSeconds--;
+      const cd = document.getElementById('rate-limit-countdown');
+      if (cd) cd.textContent = this.cooldownSeconds;
       if (this.cooldownSeconds <= 0) {
         clearInterval(this.cooldownTimer);
         this.cooldownSeconds = 0;
         btn.disabled = false;
+        // Ocultar barra
+        if (bar) {
+          bar.classList.remove('visible', 'urgent');
+        }
       }
     }, 1000);
   }
@@ -809,7 +984,8 @@ class ThaiChatApp {
   // ────────── ZOOM ──────────
   applyZoom(level) {
     this._zoomLevel = Math.min(150, Math.max(60, level));
-    document.getElementById('app').style.zoom = `${this._zoomLevel}%`;
+    // Solo escalar el texto de las burbujas del chat, no toda la UI
+    document.documentElement.style.setProperty('--chat-text-zoom', (this._zoomLevel / 100).toFixed(2));
     const display = document.getElementById('zoom-level-display');
     if (display) display.textContent = `${this._zoomLevel}%`;
   }
@@ -895,6 +1071,357 @@ class ThaiChatApp {
     }
   }
 
+  // ────────── LIVE CHAT & ADMIN ──────────
+  async initLiveChat() {
+    const liveSetup = document.getElementById('live-setup');
+    const liveChat = document.getElementById('live-chat');
+    
+    // Magic Link Generation
+    document.getElementById('settings-share-setup-btn')?.addEventListener('click', () => {
+      const fbConfig = Storage.getFirebaseConfig();
+      const apiKey = Storage.getApiKey();
+      if (!fbConfig) {
+        this.showToast('⚠️ Configura Firebase primero para compartir');
+        return;
+      }
+      const setupObj = { firebase: fbConfig, apiKey: apiKey };
+      const base64Str = btoa(JSON.stringify(setupObj));
+      const url = `${window.location.origin}${window.location.pathname}#setup=${base64Str}`;
+      
+      navigator.clipboard.writeText(url).then(() => {
+        this.showToast(i18n.t('live.setup-copied') || '✅ Link copiado. Envíalo a la otra persona.');
+      }).catch(err => {
+        console.error('Error copiando al portapapeles', err);
+      });
+    });
+
+    // Guardar config en Modal
+    const configInput = document.getElementById('settings-firebase-config');
+    if (configInput) {
+      const currentConfig = Storage.getFirebaseConfig();
+      if (currentConfig) configInput.value = JSON.stringify(currentConfig, null, 2);
+      
+      configInput.addEventListener('change', () => {
+        try {
+          const val = configInput.value.trim();
+          if (!val) {
+            Storage.setFirebaseConfig(null);
+            return;
+          }
+          // Usamos Function en vez de JSON.parse para aceptar el objeto literal de JS de Firebase directamente
+          const json = Function('"use strict";return (' + val + ')')();
+          Storage.setFirebaseConfig(json);
+          this.showToast('✅ Firebase Config guardado');
+          window.location.reload();
+        } catch(e) {
+          this.showToast('❌ Formato inválido. Pega el objeto tal como sale de Firebase.');
+        }
+      });
+    }
+
+    // Flujo normal de init
+    const fbConfig = Storage.getFirebaseConfig();
+    if (!fbConfig) {
+      if(liveSetup) liveSetup.style.display = 'flex';
+      if(liveChat) liveChat.style.display = 'none';
+      
+      document.getElementById('live-go-settings-btn')?.addEventListener('click', () => {
+        document.getElementById('settings-modal').classList.add('visible');
+      });
+      return;
+    }
+
+    if(liveSetup) liveSetup.style.display = 'none';
+    if(liveChat) liveChat.style.display = 'flex';
+
+    try {
+      await FirebaseChat.initFirebase(fbConfig);
+      await FirebaseChat.signIn();
+      
+      const userType = Storage.getChatUser(); // 'me', 'her', o 'admin'
+      
+      // Listen messages
+      FirebaseChat.listenMessages(userType, (msg) => {
+        this.renderLiveMessage(msg);
+      });
+
+      // Typing and Read status
+      FirebaseChat.listenStatus((status) => {
+        const indicator = document.getElementById('live-typing-indicator');
+        if (!indicator) return;
+        
+        const isOtherTyping = userType === 'me' ? status.herTyping : status.meTyping;
+        indicator.style.display = isOtherTyping ? 'flex' : 'none';
+
+        // Read Receipts logic could go here
+      });
+
+      this.setupLiveInputs(userType);
+      
+    } catch(err) {
+      console.error('[Firebase] Error:', err);
+      document.getElementById('live-status').innerHTML = '🔴 Error de conexión';
+      document.getElementById('live-status').style.color = '#ef4444';
+    }
+  }
+
+  setupLiveInputs(userType) {
+    const input = document.getElementById('live-input');
+    const sendBtn = document.getElementById('live-send-btn');
+    const attachBtn = document.getElementById('live-attach-btn');
+    const mediaUpload = document.getElementById('live-media-upload');
+    const micBtn = document.getElementById('live-mic-btn');
+    
+    let typingTimeout;
+    
+    // Auto-resize y Toggle Send/Mic
+    input?.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      
+      const hasText = input.value.trim().length > 0;
+      if (sendBtn) sendBtn.style.display = hasText ? 'flex' : 'none';
+      if (micBtn) micBtn.style.display = hasText ? 'none' : 'flex';
+
+      FirebaseChat.setTypingStatus(userType, true);
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => FirebaseChat.setTypingStatus(userType, false), 2000);
+    });
+
+    const triggerSend = async () => {
+      const text = input.value.trim();
+      if (!text) return;
+      
+      input.value = '';
+      input.style.height = 'auto';
+      if (sendBtn) sendBtn.style.display = 'none';
+      if (micBtn) micBtn.style.display = 'flex';
+      
+      FirebaseChat.setTypingStatus(userType, false);
+      
+      try {
+        const isThaiInput = /[\u0E00-\u0E7F]/.test(text);
+        const direction = isThaiInput ? 'th-es' : 'es-th';
+        
+        // Optimistic UI could be added here
+        
+        const result = await this.translator.translate(text);
+        
+        await FirebaseChat.sendMessage({
+          text: text,
+          translation: result.translation,
+          direction: direction,
+          sender: userType,
+          type: 'text'
+        });
+        this.haptic('send');
+      } catch(e) {
+        this.showToast('❌ Error: ' + e.message);
+      }
+    };
+
+    sendBtn?.addEventListener('click', triggerSend);
+    input?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        triggerSend();
+      }
+    });
+
+    // Adjuntos
+    attachBtn?.addEventListener('click', () => mediaUpload?.click());
+    mediaUpload?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 700 * 1024) {
+        this.showToast('❌ Archivo muy grande (máx 700KB para modo base64)');
+        return;
+      }
+      
+      this.showToast('⏳ Subiendo archivo...');
+      try {
+        const { url, type } = await FirebaseChat.sendMedia(file, userType);
+        await FirebaseChat.sendMessage({
+          text: '', translation: '', direction: '',
+          sender: userType, type: type, mediaUrl: url
+        });
+        this.showToast('✅ Enviado');
+      } catch(err) {
+        this.showToast('❌ Error al subir');
+      }
+    });
+
+    // Notas de voz
+    this.setupVoiceRecording(micBtn, userType);
+  }
+
+  setupVoiceRecording(micBtn, userType) {
+    if (!micBtn) return;
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    micBtn.addEventListener('click', async () => {
+      if (isRecording) {
+        // Detener grabación
+        mediaRecorder.stop();
+        micBtn.classList.remove('recording');
+        isRecording = false;
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(track => track.stop());
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          
+          this.showToast('⏳ Subiendo y traduciendo audio...');
+          try {
+            // Subir audio
+            const { url, type } = await FirebaseChat.sendMedia(audioBlob, userType);
+            
+            // TODO: Podríamos pedirle a Gemini que lo escuche y lo traduzca si usamos la File API.
+            // Por ahora, solo mandamos el audio (se podría mejorar).
+            await FirebaseChat.sendMessage({
+              text: '🎤 Nota de voz', translation: '🎤 ข้อความเสียง', direction: 'es-th',
+              sender: userType, type: type, mediaUrl: url
+            });
+            this.showToast('✅ Audio enviado');
+          } catch(err) {
+            console.error(err);
+            this.showToast('❌ Error con el audio');
+          }
+        };
+
+        mediaRecorder.start();
+        micBtn.classList.add('recording');
+        isRecording = true;
+        this.haptic('tap');
+      } catch(err) {
+        this.showToast('⚠️ No se pudo acceder al micrófono');
+      }
+    });
+  }
+
+  renderLiveMessage(msg) {
+    const msgsContainer = document.getElementById('live-messages');
+    if (!msgsContainer) return;
+    
+    // Si ya existe, podríamos estar actualizando (ej: borrado)
+    const existing = document.querySelector(`.chat-bubble[data-id="${msg.id}"]`);
+    if (existing) return; // Por simplicidad, no actualizamos in-place en este bloque
+    
+    const currentUser = Storage.getChatUser();
+    const isMe = msg.sender === currentUser;
+    const isAdmin = currentUser === 'admin';
+    
+    // Si es admin, mostramos la procedencia real en vez de relative "isMe"
+    const sideClass = (isMe || (isAdmin && msg.sender === 'me')) ? 'bubble-group--user' : 'bubble-group--bot';
+    const bubbleClass = (isMe || (isAdmin && msg.sender === 'me')) ? 'chat-bubble--user' : 'chat-bubble--bot';
+
+    const timeStr = new Date(msg.timestamp?.toDate() || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    const group = document.createElement('div');
+    group.className = `bubble-group ${sideClass}`;
+
+    let avatarHTML = '';
+    if (!isMe && !isAdmin) avatarHTML = `<div class="chat-bubble-avatar">${currentUser === 'me' ? '👱‍♀️' : '👦'}</div>`;
+    
+    let adminBadge = isAdmin ? `<div class="bubble-sender-badge">${msg.sender === 'me' ? '👦' : '👱‍♀️'}</div>` : '';
+
+    let contentHTML = '';
+    if (msg.type === 'image') {
+      contentHTML = `<img src="${msg.mediaUrl}" class="chat-bubble__image" onclick="window.open('${msg.mediaUrl}', '_blank')">`;
+    } else if (msg.type === 'video') {
+      contentHTML = `<video src="${msg.mediaUrl}" class="chat-bubble__video" controls></video>`;
+    } else if (msg.type === 'audio') {
+      contentHTML = `<audio src="${msg.mediaUrl}" class="chat-bubble__audio" controls></audio>
+                     <div class="chat-bubble__divider"></div>
+                     <div class="chat-bubble__text translated-text">${this.esc(msg.translation)}</div>`;
+    } else {
+      contentHTML = `<div class="chat-bubble__text original-text">${this.esc(msg.text)}</div>
+                     <div class="chat-bubble__divider"></div>
+                     <div class="chat-bubble__text translated-text thai-text">${this.esc(msg.translation)}</div>`;
+    }
+
+    group.innerHTML = `
+      ${avatarHTML}
+      <div class="chat-bubble ${bubbleClass} chat-bubble--${msg.type}" data-id="${msg.id}">
+        ${adminBadge}
+        ${contentHTML}
+        <div class="chat-bubble__meta">
+          <span class="chat-bubble__time">${timeStr}</span>
+          ${isMe ? '<span class="bubble-read-receipt">✓✓</span>' : ''}
+        </div>
+      </div>
+    `;
+
+    // Menu contextual para borrar (press and hold)
+    if (!isAdmin) {
+      const bubble = group.querySelector('.chat-bubble');
+      let pressTimer;
+      bubble.addEventListener('touchstart', () => {
+        pressTimer = setTimeout(() => {
+          if (confirm('¿Borrar mensaje para ti?')) {
+            FirebaseChat.deleteForMe(msg.id, currentUser);
+            group.remove();
+          }
+        }, 800);
+      });
+      bubble.addEventListener('touchend', () => clearTimeout(pressTimer));
+      bubble.addEventListener('touchcancel', () => clearTimeout(pressTimer));
+    }
+
+    msgsContainer.appendChild(group);
+    msgsContainer.scrollTop = msgsContainer.scrollHeight;
+    
+    // Actualizar leídos
+    if (!isMe && !isAdmin) {
+      FirebaseChat.setLastRead(currentUser, msg.id);
+      this.haptic('receive');
+    }
+  }
+
+  setupAdminMode() {
+    let logoClicks = 0;
+    let clickTimer;
+    
+    const logo = document.querySelector('.header__logo');
+    logo?.addEventListener('click', () => {
+      logoClicks++;
+      clearTimeout(clickTimer);
+      
+      if (logoClicks >= 5) {
+        logoClicks = 0;
+        const pwd = prompt('🔐 Modo Admin: Ingrese contraseña');
+        if (pwd === 'admin7878') {
+          Storage.setChatUser('admin');
+          this.showToast('✅ Modo Admin Activado');
+          window.location.reload();
+        }
+      }
+      
+      clickTimer = setTimeout(() => logoClicks = 0, 1000);
+    });
+
+    if (Storage.getChatUser() === 'admin') {
+      const banner = document.getElementById('admin-banner');
+      if (banner) banner.style.display = 'flex';
+      
+      document.getElementById('exit-admin-btn')?.addEventListener('click', () => {
+        Storage.setChatUser('me'); // O podríamos mandarlo a re-seleccionar
+        window.location.reload();
+      });
+    }
+  }
   // ────────── OFFLINE DETECTION ──────────
   setupOfflineDetection() {
     // Crear el banner de offline

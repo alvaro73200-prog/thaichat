@@ -3,10 +3,26 @@
 import PROMPTS from './prompts.js';
 
 class TranslationService {
+  // Lista de modelos en orden de prioridad (se rota automáticamente en 429)
+  static MODELS = [
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash',
+  ];
+
   constructor(apiKey) {
     this.apiKey = apiKey;
     this.model = 'gemini-2.5-flash-lite';
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
+    /**
+     * Callback que se llama cuando se cambia de modelo por 429.
+     * La app puede usarlo para: mostrar toast, guardar en storage, etc.
+     * Firma: (newModel: string, reason: string) => void
+     */
+    this.onModelSwitch = null;
   }
 
   setApiKey(apiKey) {
@@ -56,9 +72,13 @@ class TranslationService {
   }
 
   /**
-   * Llama a la API de Gemini con system prompt y texto del usuario
+   * Llama a la API de Gemini con system prompt y texto del usuario.
+   * Si recibe 429, rota automáticamente al siguiente modelo de la lista
+   * y llama al callback `onModelSwitch` si está definido.
    */
-  async _callGemini(systemPrompt, userText, maxTokens = 1024) {
+  async _callGemini(systemPrompt, userText, maxTokens = 1024, _triedModels = new Set()) {
+    if (!this.apiKey) throw new Error('Configura tu API key en Ajustes');
+
     const url = `${this.baseUrl}/${this.model}:generateContent?key=${this.apiKey}`;
 
     const body = {
@@ -87,13 +107,35 @@ class TranslationService {
       throw new Error('📡 Sin conexión a internet. Verifica tu red.');
     }
 
+    // ── Manejo de 429: rotar al siguiente modelo y reintentar ──
+    if (response.status === 429) {
+      _triedModels.add(this.model);
+
+      const nextModel = TranslationService.MODELS.find(m => !_triedModels.has(m));
+
+      if (!nextModel) {
+        // Todos los modelos agotados
+        throw new Error('RATE_LIMIT_ALL');
+      }
+
+      const previousModel = this.model;
+      this.model = nextModel;
+
+      // Notificar a la app del cambio
+      if (typeof this.onModelSwitch === 'function') {
+        this.onModelSwitch(nextModel, previousModel);
+      }
+
+      // Pequeña pausa antes de reintentar con el nuevo modelo
+      await new Promise(r => setTimeout(r, 800));
+
+      return this._callGemini(systemPrompt, userText, maxTokens, _triedModels);
+    }
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       const status = response.status;
 
-      if (status === 429) {
-        throw new Error('⏳ Límite de solicitudes alcanzado. Espera unos segundos e intenta de nuevo.');
-      }
       if (status === 400 || status === 403) {
         throw new Error('🔑 API key inválida. Ve a Ajustes (⚙️) y verifica tu key.');
       }

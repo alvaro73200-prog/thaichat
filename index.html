@@ -21,6 +21,57 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <!-- ===== PIN SCREEN ===== -->
+  <div class="pin-screen" id="pin-screen" style="display:none;">
+    <div class="pin-content">
+      <div class="pin-icon">🔒</div>
+      <h1 class="pin-title" data-i18n="pin.title">ThaiChat</h1>
+      <p class="pin-sub" data-i18n="pin.sub">Ingresa el código de acceso</p>
+      <div class="pin-dots" id="pin-dots">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="pin-keypad" id="pin-keypad">
+        <button class="pin-btn">1</button>
+        <button class="pin-btn">2</button>
+        <button class="pin-btn">3</button>
+        <button class="pin-btn">4</button>
+        <button class="pin-btn">5</button>
+        <button class="pin-btn">6</button>
+        <button class="pin-btn">7</button>
+        <button class="pin-btn">8</button>
+        <button class="pin-btn">9</button>
+        <button class="pin-btn pin-btn-clear">⌫</button>
+        <button class="pin-btn">0</button>
+        <button class="pin-btn pin-btn-dummy"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== USER SELECT SCREEN ===== -->
+  <div class="user-select-screen" id="user-select-screen" style="display:none;">
+    <div class="user-select-content">
+      <h1 data-i18n="user.title">¿Quién eres?</h1>
+      <input type="text" id="user-name-input" class="user-name-input" placeholder="Escribe tu nombre..." autocomplete="off">
+      <div class="user-cards">
+        <button data-user="me" class="user-card" id="user-card-me">
+          <span class="user-card__emoji">👦</span>
+          <span class="user-card__name" data-i18n="user.me">Él</span>
+          <span class="user-card__lang" data-i18n="user.me.lang">Habla Español</span>
+        </button>
+        <button data-user="her" class="user-card" id="user-card-her">
+          <span class="user-card__emoji">👱‍♀️</span>
+          <span class="user-card__name" data-i18n="user.her">Ella</span>
+          <span class="user-card__lang" data-i18n="user.her.lang">พูดภาษาไทย</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN BANNER ===== -->
+  <div class="admin-banner" id="admin-banner" style="display:none;">
+    <span data-i18n="admin.banner">🔐 Modo Admin — Viendo todo el historial</span>
+    <button id="exit-admin-btn" data-i18n="admin.exit">Salir</button>
+  </div>
 
   <div class="app" id="app">
 
@@ -107,11 +158,57 @@
       </div>
     </header>
 
+    <!-- ===== RATE LIMIT BAR ===== -->
+    <div class="rate-limit-bar" id="rate-limit-bar">
+      <div class="rate-limit-bar__inner">
+        <span class="rate-limit-bar__text" id="rate-limit-text">⏳ Espera <span id="rate-limit-countdown">0</span>s</span>
+        <div class="rate-limit-bar__track">
+          <div class="rate-limit-bar__fill" id="rate-limit-fill"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== MAIN CONTENT ===== -->
     <main class="main">
 
-      <!-- ─── TAB: CHAT (TRADUCIR) ─── -->
-      <div class="tab-pane active" id="tab-translate">
+      <!-- ==================== TAB: LIVE CHAT ==================== -->
+      <div class="tab-pane active" id="tab-live">
+        <!-- Setup de Firebase -->
+        <div class="live-setup" id="live-setup">
+          <div class="live-setup__icon">☁️</div>
+          <h2 data-i18n="live.setup.title">Chat en Vivo</h2>
+          <p data-i18n="live.no-firebase">Para chatear en tiempo real, pega tu config Firebase en Ajustes</p>
+          <button id="live-go-settings-btn" class="primary-btn" data-i18n="live.go-settings">Ir a Ajustes</button>
+        </div>
+
+        <!-- Chat activo -->
+        <div class="live-chat" id="live-chat" style="display:none;">
+          <div class="live-chat__header">
+            <span class="live-status" id="live-status">
+              <span class="live-status-dot"></span>
+              <span class="live-status-text" data-i18n="live.connected">🟢 Conectado</span>
+            </span>
+          </div>
+          <div class="chat-messages" id="live-messages">
+            <!-- Burbujas en tiempo real aquí -->
+          </div>
+          <div class="chat-typing-indicator" id="live-typing-indicator" style="display:none;">
+            <span class="typing-text" data-i18n="live.typing">está escribiendo...</span>
+          </div>
+          <div class="chat-input-bar">
+            <!-- Menú adjuntos -->
+            <input type="file" id="live-media-upload" accept="image/*,video/*" style="display:none;">
+            <button class="chat-attach-btn" id="live-attach-btn" title="Adjuntar archivo" data-i18n-title="live.attach">📎</button>
+            <textarea id="live-input" class="chat-input" placeholder="Escribe tu mensaje..." rows="1"></textarea>
+            <!-- Botón de voz / enviar -->
+            <button class="chat-mic-btn" id="live-mic-btn">🎙️</button>
+            <button class="chat-send-btn" id="live-send-btn" style="display:none;">▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB: TRANSLATE ==================== -->
+      <div class="tab-pane" id="tab-translate">
         <div class="chat-container">
 
           <!-- Zona de burbujas -->
@@ -252,8 +349,12 @@
 
     <!-- ===== BOTTOM NAV ===== -->
     <nav class="bottom-nav">
-      <button class="nav-item active" data-tab="translate">
+      <button class="nav-item active" data-tab="live">
         <span class="nav-icon">💬</span>
+        <span data-i18n="nav.live">Chat</span>
+      </button>
+      <button class="nav-item" data-tab="translate">
+        <span class="nav-icon">🔄</span>
         <span data-i18n="nav.translate">Traducir</span>
       </button>
       <button class="nav-item" data-tab="history">
@@ -279,21 +380,6 @@
         </div>
 
         <div class="settings-group">
-          <label class="settings-label" for="api-key-input" data-i18n="settings.key-label">🔑 API Key de Gemini</label>
-          <input
-            type="password"
-            class="settings-input"
-            id="api-key-input"
-            placeholder="AIzaSy..."
-            autocomplete="off"
-          >
-          <p class="settings-hint">
-            <span data-i18n="settings.key-hint">Obtén tu key gratis en</span>
-            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--accent-gold);">Google AI Studio</a>
-          </p>
-        </div>
-
-        <div class="settings-group">
           <label class="settings-label" for="model-select" data-i18n="settings.model-label">🤖 Modelo de Gemini</label>
           <select class="settings-input" id="model-select">
             <option value="gemini-2.5-flash-lite">⚡ Gemini 2.5 Flash Lite (rápido)</option>
@@ -306,6 +392,23 @@
           <p class="settings-hint" data-i18n="settings.model-hint">Si un modelo da error 429, cambia a otro — cada uno tiene su propia cuota.</p>
         </div>
 
+        <!-- API Key & Firebase -->
+        <div class="settings-group">
+          <label class="settings-label" data-i18n="settings.api-key">Gemini API Key</label>
+          <input type="password" id="api-key-input" class="settings-input" placeholder="AIzaSy...">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" class="settings-link" data-i18n="settings.get-key">🔗 Obtener API Key gratis</a>
+        </div>
+
+        <div class="settings-group">
+          <label class="settings-label">☁️ Firebase Config (Chat en Vivo)</label>
+          <textarea id="settings-firebase-config" class="settings-input" rows="3" placeholder='{"apiKey":"...","projectId":"..."}'></textarea>
+          <p class="settings-hint">Pega el JSON desde tu consola de Firebase.</p>
+        </div>
+
+        <div class="settings-group">
+          <button id="settings-share-setup-btn" class="primary-btn secondary">📲 Compartir Setup (Magic Link)</button>
+        </div>
+
         <!-- Idioma -->
         <div class="settings-group">
           <label class="settings-label" data-i18n="settings.lang-label">🌐 Idioma de la interfaz</label>
@@ -315,14 +418,7 @@
           </div>
         </div>
 
-        <!-- Perfil -->
-        <div class="settings-group">
-          <label class="settings-label" data-i18n="profile.label">👤 Perfil de uso</label>
-          <div class="profile-toggle" id="settings-profile-toggle">
-            <button class="profile-btn profile-btn--active" data-profile="me" data-i18n="profile.me">👦 Mi Perfil (Hablante Español)</button>
-            <button class="profile-btn" data-profile="her" data-i18n="profile.her">👱‍♀️ Su Perfil (Hablante Tailandés)</button>
-          </div>
-        </div>
+
 
         <!-- Zoom -->
         <div class="settings-group">

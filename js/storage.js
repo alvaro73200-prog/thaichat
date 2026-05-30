@@ -4,7 +4,11 @@ const KEYS = {
   API_KEY: 'thaichat_api_key',
   HISTORY: 'thaichat_history',
   FAVORITES: 'thaichat_favorites',
-  SETTINGS: 'thaichat_settings'
+  SETTINGS: 'thaichat_settings',
+  PIN: 'thaichat_pin',
+  USER: 'thaichat_chat_user',
+  USER_NAME: 'thaichat_chat_name',
+  FB_CONFIG: 'thaichat_fb_config'
 };
 
 const MAX_HISTORY = 100;
@@ -91,4 +95,43 @@ export function updateSettings(newSettings) {
   const settings = { ...getSettings(), ...newSettings };
   localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
   return settings;
+}
+
+// ==================== Premium Live Chat ====================
+
+export function getPin() {
+  return localStorage.getItem(KEYS.PIN);
+}
+
+export function setPin(pin) {
+  localStorage.setItem(KEYS.PIN, pin);
+}
+
+export function getChatUser() {
+  return localStorage.getItem(KEYS.USER); // 'me' | 'her' | 'admin'
+}
+
+export function setChatUser(user) {
+  localStorage.setItem(KEYS.USER, user);
+}
+
+export function getUserName() {
+  return localStorage.getItem(KEYS.USER_NAME) || '';
+}
+
+export function setUserName(name) {
+  localStorage.setItem(KEYS.USER_NAME, name);
+}
+
+export function getFirebaseConfig() {
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.FB_CONFIG));
+  } catch {
+    return null;
+  }
+}
+
+export function setFirebaseConfig(config) {
+  if (!config) localStorage.removeItem(KEYS.FB_CONFIG);
+  else localStorage.setItem(KEYS.FB_CONFIG, JSON.stringify(config));
 }

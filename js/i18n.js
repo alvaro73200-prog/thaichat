@@ -43,6 +43,7 @@ const STRINGS = {
   'toast.no-api-key':      { es: '⚠️ Pega tu API Key primero',                   th: '⚠️ วาง API Key ก่อน' },
 
   // Nav
+  'nav.live':              { es: 'Chat Vivo',                                     th: 'แชทสด' },
   'nav.translate':         { es: 'Traducir',                                      th: 'แปล' },
   'nav.history':           { es: 'Historial',                                     th: 'ประวัติ' },
   'nav.favorites':         { es: 'Favoritos',                                     th: 'รายการโปรด' },
@@ -80,6 +81,39 @@ const STRINGS = {
   'btn.favorite':          { es: '☆ Favorito',                                   th: '☆ รายการโปรด' },
   'btn.favorited':         { es: '⭐ Favorito',                                   th: '⭐ รายการโปรด' },
   'btn.retry':             { es: '🔄 Reintentar',                                 th: '🔄 ลองอีกครั้ง' },
+
+  // Rate limit & model switch
+  'toast.rate-limit':      { es: '⏳ Límite alcanzado — cambiando modelo...',     th: '⏳ ถึงขีดจำกัด — กำลังเปลี่ยนโมเดล...' },
+  'toast.model-switch':    { es: '⚡ Cambiado a',                                 th: '⚡ เปลี่ยนเป็น' },
+  'toast.all-busy':        { es: '🔥 Todos los modelos saturados. Espera 1 min.', th: '🔥 ทุกโมเดลเต็ม กรุณารอ 1 นาที' },
+  'ratelimit.wait':        { es: '⏳ Espera',                                     th: '⏳ รอ' },
+  'ratelimit.s':           { es: 's',                                             th: 'วิ' },
+  'settings.profile.hint': { es: 'La app se adaptará para mostrar el teclado e interfaz adecuados.', th: 'แอปจะปรับเพื่อแสดงแป้นพิมพ์และอินเทอร์เฟซที่เหมาะสม' },
+
+  // ==================== PREMIUM LIVE CHAT V3 ====================
+  // PIN
+  'pin.title':             { es: 'ThaiChat',                                      th: 'ThaiChat' },
+  'pin.sub':               { es: 'Ingresa el código de acceso',                   th: 'ป้อนรหัสผ่าน' },
+  
+  // User Select
+  'user.title':            { es: '¿Quién eres?',                                  th: 'คุณคือใคร?' },
+  'user.me':               { es: 'Él',                                            th: 'เขา' },
+  'user.me.lang':          { es: 'Habla Español',                                 th: 'พูดภาษาสเปน' },
+  'user.her':              { es: 'Ella',                                          th: 'เธอ' },
+  'user.her.lang':         { es: 'พูดภาษาไทย',                                    th: 'พูดภาษาไทย' },
+
+  // Live Chat
+  'live.setup.title':      { es: 'Chat en Vivo',                                  th: 'แชทสด' },
+  'live.no-firebase':      { es: 'Para chatear en tiempo real, pega tu config Firebase en Ajustes', th: 'เพื่อแชทแบบเรียลไทม์ วางการตั้งค่า Firebase ในการตั้งค่า' },
+  'live.go-settings':      { es: 'Ir a Ajustes',                                  th: 'ไปที่การตั้งค่า' },
+  'live.connected':        { es: '🟢 Conectado',                                  th: '🟢 เชื่อมต่อแล้ว' },
+  'live.typing':           { es: 'está escribiendo...',                           th: 'กำลังพิมพ์...' },
+  'live.attach':           { es: 'Adjuntar archivo',                              th: 'แนบไฟล์' },
+  'live.setup-copied':     { es: '✅ Link copiado. Envíalo a la otra persona.',   th: '✅ คัดลอกลิงก์แล้ว ส่งให้อีกคน' },
+  
+  // Admin
+  'admin.banner':          { es: '🔐 Modo Admin — Viendo todo el historial',      th: '🔐 โหมดผู้ดูแลระบบ — ดูประวัติทั้งหมด' },
+  'admin.exit':            { es: 'Salir',                                         th: 'ออก' }
 };
 
 let currentLang = 'es';

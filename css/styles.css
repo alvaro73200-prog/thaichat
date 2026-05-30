@@ -146,6 +146,67 @@ textarea {
   }
 }
 
+/* ==================== RATE LIMIT BAR ==================== */
+.rate-limit-bar {
+  display: none;
+  flex-shrink: 0;
+  padding: 8px 20px 10px;
+  background: linear-gradient(135deg, rgba(232,93,117,0.08) 0%, rgba(245,158,11,0.08) 100%);
+  border-bottom: 1px solid rgba(245,158,11,0.2);
+  animation: slideDown 0.25s var(--ease-out);
+}
+
+.rate-limit-bar.visible {
+  display: block;
+}
+
+.rate-limit-bar.urgent {
+  background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(232,93,117,0.1) 100%);
+  border-bottom-color: rgba(239,68,68,0.3);
+}
+
+.rate-limit-bar__inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rate-limit-bar__text {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-gold-light);
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+.rate-limit-bar.urgent .rate-limit-bar__text {
+  color: #fca5a5;
+}
+
+#rate-limit-countdown {
+  font-variant-numeric: tabular-nums;
+}
+
+.rate-limit-bar__track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.rate-limit-bar__fill {
+  height: 100%;
+  border-radius: var(--r-full);
+  background: var(--gradient-primary);
+  transition: width 1s linear;
+  width: 100%;
+}
+
+.rate-limit-bar.urgent .rate-limit-bar__fill {
+  background: linear-gradient(90deg, #ef4444, #e85d75);
+}
+
 /* ==================== HEADER ==================== */
 .header {
   height: 68px;
@@ -1414,14 +1475,14 @@ button:focus:not(:focus-visible) {
 
 /* ── Textos ── */
 .chat-bubble__text {
-  font-size: 16px;
+  font-size: calc(16px * var(--chat-text-zoom, 1));
   line-height: 1.4;
   word-break: break-word;
 }
 
 .chat-bubble__text.thai-text {
   font-family: var(--font-thai);
-  font-size: 20px;
+  font-size: calc(20px * var(--chat-text-zoom, 1));
   line-height: 1.6;
 }
 
@@ -1995,4 +2056,373 @@ button:focus:not(:focus-visible) {
 .onboarding-link:hover {
   opacity: 0.8;
   text-decoration: underline;
+}
+
+/* ==================== PIN SCREEN ==================== */
+.pin-screen {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 26, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.pin-content {
+  text-align: center;
+  width: 100%;
+  max-width: 300px;
+}
+
+.pin-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.pin-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+
+.pin-sub {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 30px;
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.pin-dots span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-gold);
+  transition: all 0.2s ease;
+}
+
+.pin-dots span.filled {
+  background: var(--accent-gold);
+}
+
+.pin-dots.error {
+  animation: shake 0.4s ease;
+}
+
+.pin-dots.error span {
+  border-color: #ef4444;
+}
+
+.pin-dots.error span.filled {
+  background: #ef4444;
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px 25px;
+}
+
+.pin-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.1s;
+  margin: 0 auto;
+}
+
+.pin-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.pin-btn-dummy {
+  visibility: hidden;
+}
+
+/* ==================== USER SELECT SCREEN ==================== */
+.user-select-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.user-select-content {
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+}
+
+.user-select-content h1 {
+  margin-bottom: 20px;
+  font-size: 28px;
+  color: var(--text-primary);
+}
+
+.user-name-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--r-md);
+  padding: 15px;
+  font-size: 18px;
+  color: white;
+  text-align: center;
+  margin-bottom: 30px;
+  transition: all 0.3s;
+}
+
+.user-name-input:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.user-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.user-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+
+.user-card:active {
+  transform: scale(0.97);
+  border-color: var(--accent-gold);
+}
+
+.user-card__emoji {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.user-card__name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+
+.user-card__lang {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* ==================== LIVE CHAT UI ==================== */
+.live-setup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.live-setup__icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 20px rgba(232, 93, 117, 0.4));
+}
+
+.live-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.live-chat__header {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 26, 0.8);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 13px;
+  font-weight: 500;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.live-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4ade80;
+}
+
+.live-status-dot {
+  width: 8px;
+  height: 8px;
+  background: #4ade80;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #4ade80;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+}
+
+.chat-typing-indicator {
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chat-attach-btn, .chat-mic-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 22px;
+  padding: 10px;
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-attach-btn:hover, .chat-mic-btn:hover {
+  color: var(--text-primary);
+}
+
+.chat-mic-btn.recording {
+  color: #ef4444;
+  animation: pulse-red 1.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* ==================== MEDIA BUBBLES ==================== */
+.chat-bubble--media {
+  padding: 5px;
+  background: rgba(255,255,255,0.05);
+}
+
+.chat-bubble__image {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  object-fit: contain;
+  cursor: pointer;
+}
+
+.chat-bubble__video {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 12px;
+  background: #000;
+}
+
+.chat-bubble__audio {
+  width: 250px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+/* ==================== READ RECEIPTS ==================== */
+.bubble-read-receipt {
+  font-size: 12px;
+  margin-left: 5px;
+  color: rgba(255,255,255,0.4);
+}
+
+.bubble-read-receipt.read {
+  color: #3b82f6;
+  text-shadow: 0 0 5px rgba(59, 130, 246, 0.4);
+}
+
+/* ==================== ADMIN BANNER ==================== */
+.admin-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--accent-gold);
+  color: #000;
+  font-weight: 700;
+  padding: 8px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100000;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  font-size: 14px;
+}
+
+#exit-admin-btn {
+  background: rgba(0,0,0,0.2);
+  border: none;
+  color: #000;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bubble-sender-badge {
+  position: absolute;
+  top: -10px;
+  font-size: 16px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bubble-group--user .bubble-sender-badge {
+  right: -5px;
+}
+
+.bubble-group--bot .bubble-sender-badge {
+  left: -5px;
 }
