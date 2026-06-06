@@ -1187,22 +1187,25 @@ select.settings-input option {
 /* ==================== TOAST NOTIFICATION ==================== */
 .toast {
   position: fixed;
-  bottom: calc(84px + 17px + var(--safe-bottom));
+  top: calc(20px + env(safe-area-inset-top, 0px));
   left: 50%;
-  transform: translateX(-50%) translateY(80px);
+  transform: translateX(-50%) translateY(-80px);
   padding: 14px 27px;
   background: var(--bg-card-solid);
   border: 1px solid var(--border-light);
-  border-radius: var(--r-full);
+  border-radius: var(--r-lg);
   color: var(--text-primary);
   font-size: 17px;
   font-weight: 500;
-  box-shadow: var(--shadow-lg);
-  z-index: 300;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
   opacity: 0;
-  transition: all 0.35s var(--ease-out);
+  transition: all 0.4s var(--ease-spring);
   pointer-events: none;
   white-space: nowrap;
+  max-width: 90vw;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .toast.visible {

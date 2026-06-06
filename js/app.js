@@ -15,9 +15,10 @@ class ThaiChatApp {
     this.lastResult = null;
     this.cooldownTimer = null;
     this.cooldownSeconds = 0;
-    this.COOLDOWN_MS = 4000;      // 4s cooldown normal entre mensajes
+    this.COOLDOWN_MS = 0;          // Sin cooldown entre mensajes
     this.COOLDOWN_429_MS = 20000; // 20s cooldown cuando hay rate limit
     this.isOffline = !navigator.onLine;
+    this.recentTranslations = []; // Contexto de traducciones recientes para mejorar traducciones
   }
 
   // ────────── INIT ──────────
@@ -440,8 +441,17 @@ class ThaiChatApp {
     this.setSendBtnState(true);
 
     try {
-      const result = await this.translator.translate(input);
+      // Preparar contexto de traducciones recientes para mejorar la traducción
+      const context = this.recentTranslations.slice(-5).map(t => 
+        `${t.input} → ${t.translation}`
+      ).join('\n');
+
+      const result = await this.translator.translate(input, context);
       result.inputText = input; // guardamos para lazy explain
+
+      // Guardar en contexto reciente
+      this.recentTranslations.push({ input, translation: result.translation });
+      if (this.recentTranslations.length > 10) this.recentTranslations.shift();
 
       // Guardar en historial (solo traducción, sin detalles)
       const entry = {
@@ -479,7 +489,11 @@ class ThaiChatApp {
       const cooldownMs = this._pendingCooldown429 ? this.COOLDOWN_429_MS : this.COOLDOWN_MS;
       const isUrgent = this._pendingCooldown429;
       this._pendingCooldown429 = false;
-      this.startCooldown(cooldownMs, isUrgent);
+      if (cooldownMs > 0) {
+        this.startCooldown(cooldownMs, isUrgent);
+      } else {
+        this.setSendBtnState(false);
+      }
     }
   }
 

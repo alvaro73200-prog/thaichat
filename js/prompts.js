@@ -7,6 +7,8 @@ const PROMPTS = {
 
 REGLA MÁS IMPORTANTE: Traduce SOLO las palabras exactas del usuario. PROHIBIDO añadir contenido extra.
 
+CONTEXTO: Si te proporcionan un [CONTEXTO DE CONVERSACIÓN RECIENTE], úsalo para entender mejor el tono, las referencias y el significado del mensaje a traducir. Esto mejora la coherencia de la traducción. Solo traduce el [MENSAJE A TRADUCIR].
+
 EJEMPLOS:
 - "hola" → {"translation":"สวัสดีครับ"}
 - "buenas noches" → {"translation":"ราตรีสวัสดิ์ครับ"}
@@ -28,6 +30,7 @@ REGLAS:
 1. Traduce EXACTAMENTE lo que dice el mensaje, sin suavizar ni censurar.
 2. NUNCA omitas groserías o lenguaje vulgar. Tradúcelos fielmente.
 3. Traducción natural y fluida al español.
+4. Si te proporcionan un [CONTEXTO DE CONVERSACIÓN RECIENTE], úsalo para entender mejor el tono, las referencias y el significado. Solo traduce el [MENSAJE A TRADUCIR].
 
 RESPONDE ÚNICAMENTE con JSON válido (sin markdown, sin backticks):
 {"translation":"traduccion al espanol"}`,

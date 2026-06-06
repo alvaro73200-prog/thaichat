@@ -172,7 +172,7 @@
     <main class="main">
 
       <!-- ==================== TAB: LIVE CHAT ==================== -->
-      <div class="tab-pane active" id="tab-live">
+      <div class="tab-pane" id="tab-live">
         <!-- Setup de Firebase -->
         <div class="live-setup" id="live-setup">
           <div class="live-setup__icon">☁️</div>
@@ -208,7 +208,7 @@
       </div>
 
       <!-- ==================== TAB: TRANSLATE ==================== -->
-      <div class="tab-pane" id="tab-translate">
+      <div class="tab-pane active" id="tab-translate">
         <div class="chat-container">
 
           <!-- Zona de burbujas -->
@@ -349,13 +349,13 @@
 
     <!-- ===== BOTTOM NAV ===== -->
     <nav class="bottom-nav">
-      <button class="nav-item active" data-tab="live">
-        <span class="nav-icon">💬</span>
-        <span data-i18n="nav.live">Chat</span>
-      </button>
-      <button class="nav-item" data-tab="translate">
+      <button class="nav-item active" data-tab="translate">
         <span class="nav-icon">🔄</span>
         <span data-i18n="nav.translate">Traducir</span>
+      </button>
+      <button class="nav-item" data-tab="live">
+        <span class="nav-icon">💬</span>
+        <span data-i18n="nav.live">Chat</span>
       </button>
       <button class="nav-item" data-tab="history">
         <span class="nav-icon">📜</span>

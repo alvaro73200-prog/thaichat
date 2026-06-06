@@ -42,7 +42,7 @@ class TranslationService {
    * Traducción ligera — solo devuelve el texto traducido.
    * Usa prompts lite para ahorrar tokens.
    */
-  async translate(text) {
+  async translate(text, context = '') {
     if (!text.trim()) throw new Error('El texto está vacío');
     if (!this.apiKey) throw new Error('Configura tu API key en Ajustes');
 
@@ -50,7 +50,13 @@ class TranslationService {
     const direction = lang === 'th' ? 'th-es' : 'es-th';
     const systemPrompt = lang === 'th' ? PROMPTS.toSpanishLite : PROMPTS.toThaiLite;
 
-    const result = await this._callGemini(systemPrompt, text, 256);
+    // Si hay contexto de traducciones previas, lo incluimos para mejor traducción
+    let userText = text;
+    if (context && context.trim()) {
+      userText = `[CONTEXTO DE CONVERSACIÓN RECIENTE]\n${context}\n\n[MENSAJE A TRADUCIR]\n${text}`;
+    }
+
+    const result = await this._callGemini(systemPrompt, userText, 256);
     return { direction, translation: result.translation || '' };
   }
 
